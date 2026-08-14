@@ -1,0 +1,47 @@
+---
+
+# Runs through the `services` list in vars.yml and installs them on the system
+- name: Deploy Docker Compose Services
+  hosts: myserver
+  become: true
+  
+  # Variables for templating compose files
+  vars_files:
+    - ../vars.yml
+    - vars.yml
+
+  # Tasks that install services into the remote node
+  tasks:
+    - name: Find local docker compose service directories locally
+      delegate_to: localhost
+      become: false
+      run_once: true
+      ansible.builtin.find:
+        paths: "compose"
+        file_type: directory
+      register: local_compose_dirs
+
+    - name: Set "services" list based on directory names
+      ansible.builtin.set_fact:
+        services: "{{ local_compose_dirs.files | map(attribute='path') | map('basename') | list }}"
+
+    - name: Ensure service directories exist on remote
+      ansible.builtin.file:
+        path: "/opt/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop: "{{ services }}"
+
+    - name: Copy docker-compose files to server
+      ansible.builtin.template:
+        src: "docker-services/{{ item }}/docker-compose.yml"
+        dest: "/opt/{{ item }}/docker-compose.yml"
+        mode: '0644'
+      loop: "{{ services }}"
+
+    - name: Deploy services via Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "/opt/{{ item }}"
+        state: present
+        pull: always
+      loop: "{{ services }}"

@@ -1,0 +1,31 @@
+---
+services:
+  frigate:
+    container_name: frigate
+    restart: unless-stopped
+    stop_grace_period: 30s
+    image: ghcr.io/blakeblackshear/frigate:stable
+    shm_size: "128mb" # Increase if getting bus errors
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./config:/config
+      - {{ frigate_storage_dir }}:/media/frigate
+      - {{ https_crt_path }}:/etc/letsencrypt/live/frigate/fullchain.pem:ro
+      - {{ https_key_path }}:/etc/letsencrypt/live/frigate/privkey.pem:ro
+      - type: tmpfs # 1GB In-memory filesystem for recording segment storage
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    # TODO: optimize for intel CPU
+    # devices:
+    #   - /dev/video11:/dev/video11 # RPi 4B video hardware decoder (?)
+    ports:
+      - "{{ frigate_port_gui }}:8971"
+      - "8554:8554" # RTSP feeds
+      - "8555:8555/tcp" # WebRTC over tcp
+      - "8555:8555/udp" # WebRTC over udp
+    environment:
+      FRIGATE_RTSP_PASSWORD: "{{ frigate_rtsp_pw }}"
+
+
+

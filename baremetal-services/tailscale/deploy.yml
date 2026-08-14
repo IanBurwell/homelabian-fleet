@@ -1,0 +1,50 @@
+---
+
+- name: Deploy Tailscale certificate renewal script
+  hosts: homelab
+  become: true
+
+  vars_files:
+    - ../vars.yml
+
+  vars:
+    script_path: "/usr/local/bin/renew-tailscale-certs.sh"
+
+  tasks:
+    - name: Ensure shared certificate directory exists
+      ansible.builtin.file:
+        path: "{{ https_certs_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Deploy renewal bash script
+      ansible.builtin.template:
+        dest: "{{ script_path }}"
+        mode: '0755'
+        src: tailscale-cert-renew.sh
+
+    - name: Initial run of cert generation script
+      ansible.builtin.command: " {{ script_path }}"
+      args:
+          creates:
+            - {{ https_crt }}
+            - {{ https_key }}
+
+    - name: Deploy systemd service unit
+      ansible.builtin.template:
+        dest: /etc/systemd/system/tailscale-cert.service
+        mode: '0644'
+        src: tailscale-cert-renew.service
+
+    - name: Deploy systemd timer unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/tailscale-cert.timer
+        mode: '0644'
+        src: tailscale-cert-renew.timer
+
+    - name: Reload systemd daemon and enable timer
+      ansible.builtin.systemd:
+        daemon_reload: true
+        name: tailscale-cert.timer
+        enabled: true
+        state: started

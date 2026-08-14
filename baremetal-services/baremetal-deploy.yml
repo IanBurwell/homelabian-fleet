@@ -1,0 +1,20 @@
+---
+
+- name: Execute all adjacent deploy playbooks
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Find all deploy.yml files in subdirectories
+      ansible.builtin.find:
+        paths: "."
+        patterns: "deploy.yml"
+        recurse: true
+      register: found_playbooks
+
+    - name: Run each discovered playbook
+      ansible.builtin.command: "ansible-playbook {{ item.path }}"
+      loop: "{{ found_playbooks.files }}"
+      # Prevents the script from executing a deploy.yml in the root folder to avoid loops
+      when: item.path | dirname != '.'

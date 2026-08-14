@@ -1,0 +1,23 @@
+---
+services:
+  actual_server:
+    image: docker.io/actualbudget/actual-server:latest-alpine
+    ports:
+      - '{{ actual_port }}:5006'
+    environment:
+      # See all options and more details at https://actualbudget.org/docs/config/
+      - ACTUAL_HTTPS_KEY=/data/selfhost.key
+      - ACTUAL_HTTPS_CERT=/data/selfhost.crt
+    volumes:
+      - ./actual-data:/data
+      - {{ https_crt_path }}:/data/selfhost.key
+      - {{ https_key_path }}:/data/selfhost.crt
+
+    healthcheck:
+      # Enable health check for the instance
+      test: ['CMD-SHELL', 'NODE_EXTRA_CA_CERTS=/data/en-pi.pizzly-forel.ts.net.crt', 'node src/scripts/health-check.js']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped

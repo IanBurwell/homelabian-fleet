@@ -1,0 +1,9 @@
+---
+
+# Main Ansible playbook to run configuration of servers in inventory
+
+# Deploy docker services
+- ansible.builtin.import_playbook: docker-services/docker-deploy.yml
+
+# Deploy baremetal services
+- ansible.builtin.import_playbook: baremetal-services/baremetal-deploy.yml
