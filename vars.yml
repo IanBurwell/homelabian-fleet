@@ -1,9 +1,0 @@
----
-
-# Top-level variables
-
-tailscale_fqdn: homelabian.zuul-diphda.ts.net
-https_certs_dir: /opt/shared-certs
-https_crt_path: {{ https_certs_dir }}/{{ tailscale_fqdn }}.crt
-https_key_path: {{ https_certs_dir }}/{{ tailscale_fqdn }}.key
-

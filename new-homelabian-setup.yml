@@ -1,0 +1,135 @@
+---
+# Playbook to setup a newly flashed homelabian-mini server
+# Run with: ansible-playbook new-homelabian-setup.yml -e "new_hostname=node-01" -e "tailscale_authkey=tskey-auth-asdfASDF"
+
+- name: Server Provisioning
+  hosts: homelabian.local
+  become: true
+  vars:
+    root_part_num: 2
+    swap_part_num: 3
+    ts_authkey: "{{ tailscale_authkey | mandatory('You must provide a tailscale_authkey via CLI') }}"
+    target_hostname: "{{ new_hostname | mandatory('You must provide a new_hostname via CLI') }}"
+    ansible_become_password: "{{ initial_pass }}"
+
+  tasks:
+    # --- Filesystem Setup ---
+    - name: Identify the partition mounted at /
+      ansible.builtin.set_fact:
+        root_partition: "{{ ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | map(attribute='device') | first }}"
+
+    - name: Determine the parent disk of the root partition
+      ansible.builtin.command: "lsblk -no pkname {{ root_partition }}"
+      register: parent_disk_raw
+      changed_when: false
+      # Forces this command to execute even during a dry run
+      check_mode: false
+
+    - name: Set dynamic disk_device and prefix variable
+      ansible.builtin.set_fact:
+        disk_device: "/dev/{{ parent_disk_raw.stdout | trim }}"
+        # Uses regex_search directly on the string to avoid [-1] index errors
+        part_prefix: "{{ 'p' if parent_disk_raw.stdout | default('') | trim | regex_search('[0-9]$') else '' }}"
+
+    - name: Create swap partition at the end of the disk
+      community.general.parted:
+        device: "{{ disk_device }}"
+        number: "{{ swap_part_num }}"
+        state: present
+        fs_type: linux-swap
+        part_start: "-{{ swap_size }}"
+        part_end: "100%"
+        label: "gpt"
+
+    - name: Format the swap partition
+      community.general.filesystem:
+        fstype: swap
+        dev: "{{ disk_device }}{{ part_prefix }}{{ swap_part_num }}"
+      when: not ansible_check_mode
+
+    - name: Add swap to fstab
+      ansible.posix.mount:
+        name: none
+        src: "{{ disk_device }}{{ part_prefix }}{{ swap_part_num }}"
+        fstype: swap
+        opts: sw
+        passno: "0"
+        dump: "0"
+        state: present
+
+    - name: Enable swap
+      ansible.builtin.command: swapon -a
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Expand mounted root partition to fill available space
+      ansible.builtin.command: "growpart {{ disk_device }} {{ root_part_num }}"
+      register: growpart_out
+      changed_when: growpart_out.rc == 0
+      # growpart returns exit code 1 if the partition is already at max size
+      failed_when: growpart_out.rc != 0 and 'NOCHANGE' not in growpart_out.stdout
+      when: not ansible_check_mode
+
+    - name: Resize root filesystem
+      community.general.filesystem:
+        fstype: "ext4"
+        dev: "{{ disk_device }}{{ part_prefix }}{{ root_part_num }}"
+        resizefs: true
+
+    # --- Tailscale Setup ---
+    - name: Download Tailscale official install script
+      ansible.builtin.get_url:
+        url: https://tailscale.com/install.sh
+        dest: /tmp/tailscale-install.sh
+        mode: '0755'
+      notify: Run Tailscale installation script
+
+    - name: Ensure Tailscale installation handler runs before authentication
+      ansible.builtin.meta: flush_handlers
+
+    - name: Authenticate server to Tailnet
+      ansible.builtin.command: "tailscale up --authkey={{ ts_authkey }} --hostname={{ target_hostname }}"
+      register: ts_status
+      changed_when: "'Success' in ts_status.stdout"
+      failed_when: ts_status.rc != 0 and 'already authenticated' not in ts_status.stderr
+
+    # --- Hostname Setup ---
+    - name: Set the new systemd hostname
+      ansible.builtin.hostname:
+        name: "{{ target_hostname }}"
+
+    - name: Update /etc/hosts with new hostname
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1'
+        line: "127.0.1.1 {{ target_hostname }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    # --- User password change ---
+    - name: Update default user password
+      ansible.builtin.user:
+        name: "{{ homelabian_user }}"
+        password: "{{ server_user_passwd_hash }}"
+
+
+  handlers:
+    - name: Run Tailscale installation script
+      ansible.builtin.command: /tmp/tailscale-install.sh
+      args:
+        creates: /usr/bin/tailscale
+
+# --- Local Inventory Update ---
+- name: Update Local Ansible Inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Append new hostname to static inventory with explicit IP
+      ansible.builtin.lineinfile:
+        path: "./inventory.ini"
+        line: "{{ new_hostname }}.local ansible_user=en"
+        create: true
+        insertafter: EOF
+        mode: '0644'
