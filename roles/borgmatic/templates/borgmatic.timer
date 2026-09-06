@@ -1,0 +1,11 @@
+[Unit]
+Description=Borgmatic backup timer
+Requires=borgmatic.service
+
+[Timer]
+OnBootSec={{ '0min' if borgmatic_schedule_on_boot else '30min' }}
+OnCalendar=*-*-* {{ '%02d' % borgmatic_schedule_hour }}:{{ '%02d' % borgmatic_schedule_minute }}:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

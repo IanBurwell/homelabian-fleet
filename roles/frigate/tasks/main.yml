@@ -1,0 +1,27 @@
+---
+# Tasks to deploy frigate service
+
+- name: Deploy frigate
+  block:
+    - name: Ensure data directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ frigate_data_dir }}/config"
+        - "{{ frigate_storage_dir }}"
+
+    - name: Deploy docker-compose file
+      ansible.builtin.template:
+        src: docker-compose.yml
+        dest: "{{ frigate_data_dir }}/docker-compose.yml"
+        mode: '0644'
+      register: frigate_compose_template
+
+    - name: Start frigate service
+      community.docker.docker_compose_v2:
+        project_src: "{{ frigate_data_dir }}"
+        state: present
+        pull: always
+      when: not ansible_check_mode

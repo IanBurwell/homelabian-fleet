@@ -1,0 +1,24 @@
+---
+# Tasks to deploy actual_budget service
+
+- name: Deploy actual_budget
+  block:
+    - name: Ensure data directory exists
+      ansible.builtin.file:
+        path: "{{ actual_budget_data_dir }}/data"
+        state: directory
+        mode: '0755'
+
+    - name: Deploy docker-compose file
+      ansible.builtin.template:
+        src: docker-compose.yml
+        dest: "{{ actual_budget_data_dir }}/docker-compose.yml"
+        mode: '0644'
+      register: actual_budget_compose_template
+
+    - name: Start actual_budget service
+      community.docker.docker_compose_v2:
+        project_src: "{{ actual_budget_data_dir }}"
+        state: present
+        pull: always
+      when: not ansible_check_mode

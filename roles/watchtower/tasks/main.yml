@@ -1,0 +1,24 @@
+---
+# Tasks to deploy watchtower service
+
+- name: Deploy watchtower
+  block:
+    - name: Ensure data directory exists
+      ansible.builtin.file:
+        path: "{{ watchtower_data_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Deploy docker-compose file
+      ansible.builtin.template:
+        src: docker-compose.yml
+        dest: "{{ watchtower_data_dir }}/docker-compose.yml"
+        mode: '0644'
+      register: watchtower_compose_template
+
+    - name: Start watchtower service
+      community.docker.docker_compose_v2:
+        project_src: "{{ watchtower_data_dir }}"
+        state: present
+        pull: always
+      when: not ansible_check_mode

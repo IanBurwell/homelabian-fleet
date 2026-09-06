@@ -1,0 +1,24 @@
+---
+# Tasks to deploy homarr service
+
+- name: Deploy homarr
+  block:
+    - name: Ensure data directory exists
+      ansible.builtin.file:
+        path: "{{ homarr_data_dir }}/appdata"
+        state: directory
+        mode: '0755'
+
+    - name: Deploy docker-compose file
+      ansible.builtin.template:
+        src: docker-compose.yml
+        dest: "{{ homarr_data_dir }}/docker-compose.yml"
+        mode: '0644'
+      register: homarr_compose_template
+
+    - name: Start homarr service
+      community.docker.docker_compose_v2:
+        project_src: "{{ homarr_data_dir }}"
+        state: present
+        pull: always
+      when: not ansible_check_mode

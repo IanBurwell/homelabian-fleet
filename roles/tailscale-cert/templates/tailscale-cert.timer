@@ -1,0 +1,9 @@
+[Unit]
+Description=Monthly Tailscale HTTPS certificate renewal
+
+[Timer]
+OnCalendar={{ tailscale_cert_schedule }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

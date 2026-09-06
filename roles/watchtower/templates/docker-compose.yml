@@ -1,0 +1,10 @@
+---
+services:
+  watchtower:
+    container_name: watchtower
+    image: "{{ watchtower_image }}"
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL={{ watchtower_check_period }}

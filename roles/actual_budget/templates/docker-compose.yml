@@ -1,0 +1,29 @@
+---
+services:
+  actual_server:
+    image: "{{ actual_budget_image }}"
+    container_name: actual-budget
+    ports:
+      - '{{ actual_budget_port }}:5006'
+    environment:
+      - ACTUAL_HTTPS_KEY=/data/selfhost.key
+      - ACTUAL_HTTPS_CERT=/data/selfhost.crt
+    volumes:
+      - type: bind
+        source: "{{ actual_budget_data_dir }}/data"
+        target: /data
+      - type: bind
+        source: "{{ https_crt_path }}"
+        target: /data/selfhost.crt
+        read_only: true
+      - type: bind
+        source: "{{ https_key_path }}"
+        target: /data/selfhost.key
+        read_only: true
+    healthcheck:
+      test: ['CMD-SHELL', 'node src/scripts/health-check.js']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped

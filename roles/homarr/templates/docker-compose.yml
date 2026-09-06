@@ -1,0 +1,13 @@
+---
+services:
+  homarr:
+    container_name: homarr
+    image: "{{ homarr_image }}"
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./appdata:/appdata
+    environment:
+      - SECRET_ENCRYPTION_KEY={{ homarr_enc_key }}
+    ports:
+      - '{{ homarr_port }}:7575'

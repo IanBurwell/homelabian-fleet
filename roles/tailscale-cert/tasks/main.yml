@@ -1,0 +1,57 @@
+---
+# Tasks to deploy the Tailscale HTTPS certificate renewal service
+
+- name: Build the host-specific Tailscale HTTPS FQDN
+  ansible.builtin.set_fact:
+    tailscale_cert_fqdn: "{{ ansible_facts['hostname'] }}.{{ tailscale_fqdn }}"
+
+- name: Ensure Tailscale HTTPS certificate directory exists
+  ansible.builtin.file:
+    path: "{{ https_certs_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Deploy Tailscale HTTPS certificate service
+  ansible.builtin.template:
+    src: tailscale-cert.service
+    dest: /etc/systemd/system/tailscale-cert.service
+    mode: '0644'
+  register: tailscale_cert_service
+
+- name: Deploy Tailscale HTTPS certificate timer
+  ansible.builtin.template:
+    src: tailscale-cert.timer
+    dest: /etc/systemd/system/tailscale-cert.timer
+    mode: '0644'
+  register: tailscale_cert_timer
+
+- name: Reload systemd if the Tailscale certificate units changed
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: tailscale_cert_service.changed or tailscale_cert_timer.changed
+    and not ansible_check_mode
+
+- name: Check for existing Tailscale HTTPS certificate
+  ansible.builtin.stat:
+    path: "{{ https_crt_path }}"
+  register: tailscale_cert_file
+
+- name: Check for existing Tailscale HTTPS private key
+  ansible.builtin.stat:
+    path: "{{ https_key_path }}"
+  register: tailscale_key_file
+
+- name: Generate missing Tailscale HTTPS certificate files
+  ansible.builtin.systemd_service:
+    name: tailscale-cert.service
+    state: started
+  when:
+    - not ansible_check_mode
+    - not tailscale_cert_file.stat.exists or not tailscale_key_file.stat.exists
+
+- name: Enable and start Tailscale HTTPS certificate timer
+  ansible.builtin.systemd_service:
+    name: tailscale-cert.timer
+    state: started
+    enabled: true
+  when: not ansible_check_mode

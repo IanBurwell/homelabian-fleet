@@ -1,0 +1,9 @@
+[Unit]
+Description=Borgmatic backup service
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/borgmatic -c {{ borgmatic_config_dir }}/config.yaml
+StandardOutput=journal
+StandardError=journal

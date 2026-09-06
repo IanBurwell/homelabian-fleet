@@ -1,0 +1,4 @@
+---
+# Default variables for the tailscale-cert role
+
+tailscale_cert_schedule: monthly

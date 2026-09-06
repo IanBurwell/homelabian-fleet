@@ -1,8 +1,0 @@
-[Unit]
-Description=Renew Tailscale TLS Certificates
-After=network.target tailscaled.service
-Wants=network-online.target tailscaled.service
-
-[Service]
-Type=oneshot
-ExecStart={{ script_path }}

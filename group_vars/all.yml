@@ -1,14 +1,14 @@
 ---
 
 # Top-level variables
-tailscale_fqdn: homelabian.zuul-diphda.ts.net
-https_certs_dir: /opt/shared-certs
-https_crt_path: "{{ https_certs_dir }}/{{ tailscale_fqdn }}.crt"
-https_key_path: "{{ https_certs_dir }}/{{ tailscale_fqdn }}.key"
+tailscale_fqdn: zuul-diphda.ts.net
 homelabian_user: en
-ansible_user: en
+https_certs_dir: /opt/shared-certs
+https_crt_path: "{{ https_certs_dir }}/{{ ansible_facts['hostname'] }}.{{ tailscale_fqdn }}.crt"
+https_key_path: "{{ https_certs_dir }}/{{ ansible_facts['hostname'] }}.{{ tailscale_fqdn }}.key"
+ansible_user: "{{ homelabian_user }}"
 
-# Variables for net-homelabian-setup playbook
+# Variables for new-homelabian-setup playbook
 swap_size: "4GiB"
 server_user_passwd_hash: !vault |
       $ANSIBLE_VAULT;1.1;AES256

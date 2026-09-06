@@ -1,0 +1,51 @@
+---
+# Tasks to deploy borgmatic backup service
+
+- name: Deploy borgmatic
+  block:
+    - name: Ensure borgmatic directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ borgmatic_config_dir }}"
+        - "{{ borgmatic_cache_dir }}"
+        - "{{ borgmatic_log_dir }}"
+
+    - name: Check if borgmatic config exists
+      ansible.builtin.stat:
+        path: "{{ borgmatic_config_dir }}/config.yaml"
+      register: borgmatic_config_stat
+
+    - name: Deploy default borgmatic config
+      ansible.builtin.template:
+        src: borgmatic-config.yaml
+        dest: "{{ borgmatic_config_dir }}/config.yaml"
+        mode: '0600'
+      when: not borgmatic_config_stat.stat.exists
+
+    - name: Deploy borgmatic systemd service
+      ansible.builtin.template:
+        src: borgmatic.service
+        dest: /etc/systemd/system/borgmatic.service
+        mode: '0644'
+      register: borgmatic_service
+
+    - name: Deploy borgmatic systemd timer
+      ansible.builtin.template:
+        src: borgmatic.timer
+        dest: /etc/systemd/system/borgmatic.timer
+        mode: '0644'
+      register: borgmatic_timer
+
+    - name: Reload systemd if service/timer changed
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: borgmatic_service.changed or borgmatic_timer.changed
+
+    - name: Enable and start borgmatic timer
+      ansible.builtin.systemd_service:
+        name: borgmatic.timer
+        state: started
+        enabled: true

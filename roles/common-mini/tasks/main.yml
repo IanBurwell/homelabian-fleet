@@ -1,0 +1,68 @@
+---
+# Common tasks applied to all homelabian-mini servers
+
+- name: Common homelabian-mini setup
+  block:
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install common tools
+      ansible.builtin.package:
+        name:
+          - git
+          - curl
+          - wget
+          - jq
+          - vim
+          - less
+          - btop
+          - htop
+          - tmux
+          - screen
+          - plocate             # locate tool to help find files
+        state: present
+
+    - name: Install common misc packages
+      ansible.builtin.package:
+        name:
+          - intel-microcode     # Microcode security updates for Intel CPUs
+          - amd64-microcode     # Microcode security updates for AMD CPUs
+          - etckeeper           # Tracks changes to `/etc` via git
+        state: present
+
+    ##### Install Docker #####
+
+    - name: Download Docker's official GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/debian/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+
+    - name: Add Docker repository to Apt sources
+      ansible.builtin.deb822_repository:
+        install_python_debian: true
+        name: docker
+        types: deb
+        uris: https://download.docker.com/linux/debian
+        suites: '{{ ansible_facts["distribution_release"] }}'
+        components: stable
+        architectures: '{{ {"x86_64": "amd64", "aarch64": "arm64"}.get(ansible_facts.architecture, ansible_facts.architecture) }}'
+        signed_by: /etc/apt/keyrings/docker.asc
+
+    - name: Update apt cache after adding Docker repository
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install Docker and Docker Compose
+      ansible.builtin.package:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+          - python3-docker
+        state: present
+      when: not ansible_check_mode

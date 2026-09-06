@@ -1,0 +1,12 @@
+---
+# Default variables for borgmatic role
+
+borgmatic_config_dir: /etc/borgmatic.d
+borgmatic_cache_dir: /var/cache/borg
+borgmatic_log_dir: /var/log/borgmatic
+
+# Backup schedule - runs via systemd timer
+borgmatic_schedule_on_boot: false
+borgmatic_schedule_daily: true
+borgmatic_schedule_hour: 2
+borgmatic_schedule_minute: 0

@@ -1,7 +1,6 @@
 # Homelabian Fleet - Further setup of my homelab fleet
 
 This repo uses ansible to configure a base homelabian-mini server, adding various settings and services beyond the basic configuration.
-- Dependencies install (TODO explore improvement): `ansible-galaxy collection install community.general ansible.posix`
 
 
 # DevContainer Usage (Recommended)
@@ -20,8 +19,16 @@ This repo uses ansible to configure a base homelabian-mini server, adding variou
 
 # Resources
 - To provision a fresh homelabian image initially run `ansible-playbook new-homelabian-setup.yml -e "new_hostname=new-hostname" -e "tailscale_authkey=$(cat tailscale.pass)"` 
-- `ansible all -m ping -i inventory.ini` - pings all servers in inventory
+- `ansible all -m ping` - pings all servers in inventory
 - `ansible all -m ansible.builtin.shell -a "/sbin/reboot"` - reboot all servers in inventory
-- `ansible-lint playbook.yml` - check validity of a playbook
+- `ansible-lint playbooks/deploy.yml` - check validity of a playbook
 - `ansible-vault encrypt_string '<string>' --name 'variable_name'` - generate an encrypted string variable
 - Add `--check` to a playbook run to test it and not make any real changes
+- `ansible-galaxy collection install -r requirements.yml` - Dependencies install (should be in the devcontainer)
+
+#### TODOs
+- Setup Actual/Frigate/Homarr
+- Implement mdadm software RAID on m710q
+- Implement borgmatic for backups (where should they go though?)
+- UFW doesnt work with docker, look at using tailscale as a reverse proxy and setting docker ports to `127.0.0.1:port:dport`
+- Document how to run main/setup playbooks

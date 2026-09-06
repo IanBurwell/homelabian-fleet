@@ -2,6 +2,7 @@
   "name": "ansible-dev-container-docker",
   "image": "ghcr.io/ansible/community-ansible-dev-tools:latest",
   "containerUser": "root",
+  "postCreateCommand": "ansible-galaxy collection install -r requirements.yml",
   "runArgs": [
     "--security-opt",
     "seccomp=unconfined",
@@ -13,12 +14,25 @@
     "/dev/fuse",
     "--security-opt",
     "apparmor=unconfined",
-    "--hostname=ansible-dev-container"
+    "--hostname=ansible-dev-container",
+    "--add-host=host.docker.internal:host-gateway"
   ],
   "updateRemoteUserUID": true,
   "customizations": {
     "vscode": {
-      "extensions": ["redhat.ansible","redhat.vscode-redhat-account"]
+      "extensions": [
+        "redhat.ansible",
+        "redhat.vscode-redhat-account", 
+        "Ollama.ollama"
+      ],
+      "settings": {
+        "ollama.endpoint": "http://host.docker.internal:11434"      
+      }
     }
+  },
+  "containerEnv": {
+    "OLLAMA_HOST": "http://host.docker.internal:11434",
+    "GIT_PAGER": "less"
+
   }
 }

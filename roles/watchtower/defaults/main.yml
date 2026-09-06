@@ -1,0 +1,6 @@
+---
+# Default variables for watchtower role
+
+watchtower_image: nickfedor/watchtower:latest
+watchtower_data_dir: /opt/watchtower
+watchtower_check_period: 86400  # Daily checks (in seconds)

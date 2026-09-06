@@ -1,0 +1,10 @@
+[Unit]
+Description=Generate Tailscale HTTPS certificate
+After=network-online.target tailscaled.service
+Wants=network-online.target tailscaled.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/tailscale cert --cert-file={{ https_crt_path }} --key-file={{ https_key_path }} {{ tailscale_cert_fqdn }}
+StandardOutput=journal
+StandardError=journal
