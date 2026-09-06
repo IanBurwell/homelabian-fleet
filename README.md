@@ -27,8 +27,9 @@ This repo uses ansible to configure a base homelabian-mini server, adding variou
 - `ansible-galaxy collection install -r requirements.yml` - Dependencies install (should be in the devcontainer)
 
 #### TODOs
-- Setup Actual/Frigate/Homarr
+- Determine backup *and restore* system
 - Implement mdadm software RAID on m710q
 - Implement borgmatic for backups (where should they go though?)
+Move frigate `config.yaml` into Ansible
 - UFW doesnt work with docker, look at using tailscale as a reverse proxy and setting docker ports to `127.0.0.1:port:dport`
 - Document how to run main/setup playbooks

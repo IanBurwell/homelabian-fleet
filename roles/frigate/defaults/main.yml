@@ -9,6 +9,7 @@ frigate_image: ghcr.io/blakeblackshear/frigate:stable
 frigate_data_dir: /opt/frigate
 frigate_storage_dir: /opt/frigate/storage
 frigate_shm_size: "128mb"
+frigate_gpu_device: "/dev/dri/renderD128"  # /dev/video11 for RPi 3B
 frigate_rtsp_pw: !vault |
           $ANSIBLE_VAULT;1.1;AES256
           64636435333365353065326137306264356361383038656566306639343661366133393438376531
