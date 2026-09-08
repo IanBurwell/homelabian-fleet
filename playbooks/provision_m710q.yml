@@ -1,0 +1,29 @@
+---
+# Playbook to setup a newly flashed homelabian-mini server
+# Run with: ansible-playbook new-homelabian-setup.yml -e "new_hostname=node-01" -e "tailscale_authkey=tskey-auth-asdfASDF"
+
+- name: Server Provisioning
+  hosts: homelabian.local
+  become: true
+  vars:
+    ansible_become_password: "{{ initial_pass }}"
+    new_hostname: "homelabian-m710q"
+    # Create data partition by limiting rootfs size
+    provision_storage_rootfs_size_gigs: 16
+
+  roles:
+    - role: provision_storage
+    - role: provision_tailscale
+    - role: provision_hostname
+    - role: provision_user
+
+  tasks:
+    - name: Append new hostname to static inventory with explicit IP
+      ansible.builtin.lineinfile:
+        path: "../inventory.ini"
+        line: "{{ new_hostname }}"
+        create: true
+        insertafter: "[homelab]"
+        mode: '0644'
+      delegate_to: localhost
+      become: false

@@ -1,0 +1,14 @@
+---
+# Default variables for the storage provisioning role
+
+provision_storage_swap_size: "4GiB"
+
+# By setting a rootfs partition size, a new data partition will fill the extra space
+provision_storage_rootfs_size_gigs: null
+provision_storage_data_mountpoint: null
+provision_storage_data_fstype: ext4
+provision_storage_data_label: data
+
+provision_storage_root_part_num: 2
+provision_storage_data_part_num: 3
+provision_storage_swap_part_num: "{{ 4 if (provision_storage_rootfs_size_gigs is not none) else 3 }}"

@@ -2,7 +2,7 @@
   "name": "ansible-dev-container-docker",
   "image": "ghcr.io/ansible/community-ansible-dev-tools:latest",
   "containerUser": "root",
-  "postCreateCommand": "ansible-galaxy collection install -r requirements.yml",
+  "postCreateCommand": "ansible-galaxy install -r requirements.yml",
   "runArgs": [
     "--security-opt",
     "seccomp=unconfined",

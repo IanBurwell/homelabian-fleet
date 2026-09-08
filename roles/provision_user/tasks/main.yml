@@ -1,0 +1,7 @@
+---
+# Set the default user's password on a newly flashed server
+
+- name: Update default user password
+  ansible.builtin.user:
+    name: "{{ homelabian_user }}"
+    password: "{{ server_user_passwd_hash }}"

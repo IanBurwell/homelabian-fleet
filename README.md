@@ -18,13 +18,13 @@ This repo uses ansible to configure a base homelabian-mini server, adding variou
 4. Profit
 
 # Resources
-- To provision a fresh homelabian image initially run `ansible-playbook new-homelabian-setup.yml -e "new_hostname=new-hostname" -e "tailscale_authkey=$(cat tailscale.pass)"` 
+- To provision the m710q machine initially run `ansible-playbook provision_m710q.yml -e "new_hostname=homelabian-m710q" -e "tailscale_authkey=$(cat tailscale.pass)"` (TODO generalize this)
 - `ansible all -m ping` - pings all servers in inventory
 - `ansible all -m ansible.builtin.shell -a "/sbin/reboot"` - reboot all servers in inventory
+- `ansible-vault encrypt_string 'var_content' --name 'variable_name'` - generate an encrypted string variable
 - `ansible-lint playbooks/deploy.yml` - check validity of a playbook
-- `ansible-vault encrypt_string '<string>' --name 'variable_name'` - generate an encrypted string variable
 - Add `--check` to a playbook run to test it and not make any real changes
-- `ansible-galaxy collection install -r requirements.yml` - Dependencies install (should be in the devcontainer)
+- `ansible-galaxy install -r requirements.yml` - Dependencies install (auto run in the devcontainer)
 
 #### TODOs
 - Determine backup *and restore* system

@@ -1,0 +1,4 @@
+---
+# Default variables for the hostname provisioning role
+
+provision_hostname_hostname: "{{ new_hostname | mandatory('You must provide a new_hostname') }}"

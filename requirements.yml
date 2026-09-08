@@ -9,3 +9,7 @@ collections:
     version: ">=3.0.0"
   - name: ansible.posix
     version: ">=1.0.0"
+
+roles:
+  - name: mrlesmithjr.mdadm
+    version: "v0.1.10"

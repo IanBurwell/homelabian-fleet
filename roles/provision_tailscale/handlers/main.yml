@@ -1,0 +1,6 @@
+---
+
+- name: Run Tailscale installation script
+  ansible.builtin.command: /tmp/tailscale-install.sh
+  args:
+    creates: /usr/bin/tailscale

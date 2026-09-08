@@ -8,8 +8,7 @@ https_crt_path: "{{ https_certs_dir }}/{{ ansible_facts['hostname'] }}.{{ tailsc
 https_key_path: "{{ https_certs_dir }}/{{ ansible_facts['hostname'] }}.{{ tailscale_fqdn }}.key"
 ansible_user: "{{ homelabian_user }}"
 
-# Variables for new-homelabian-setup playbook
-swap_size: "4GiB"
+# Variables for provision_m710q playbook
 server_user_passwd_hash: !vault |
       $ANSIBLE_VAULT;1.1;AES256
       39363463633331613238333366346165616535353565643030663835333563366130343164396239

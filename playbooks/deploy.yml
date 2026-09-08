@@ -5,18 +5,17 @@
 - name: Configure m710q server
   hosts: homelabian-m710q
   become: true
-  gather_facts: true
 
   # Setup various services via roles
   roles:
     # General setup
     - role: common-mini
-    # - role: mdadm
 
     # Docker services
     - role: actual_budget
     - role: frigate
     - role: homarr
     - role: watchtower
+
     # Baremetal services
     # - role: borgmatic

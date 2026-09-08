@@ -1,5 +1,4 @@
 .vscode/
 .ansible/
 
-# Local assword files
 *.pass

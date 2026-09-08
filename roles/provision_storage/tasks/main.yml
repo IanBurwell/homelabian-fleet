@@ -1,0 +1,123 @@
+---
+# Prepare the root disk and enable swap on a newly flashed server
+
+
+- name: Discover rootfs drive info
+  block:
+    - name: Identify the partition mounted at /
+      ansible.builtin.set_fact:
+        provision_storage_root_partition: "{{ ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | map(attribute='device') | first }}"
+
+    - name: Determine the parent disk of the root partition
+      ansible.builtin.command: "lsblk -no pkname {{ provision_storage_root_partition }}"
+      register: provision_storage_parent_disk_raw
+      changed_when: false
+      check_mode: false
+
+    - name: Set dynamic disk device and partition prefix
+      ansible.builtin.set_fact:
+        provision_storage_disk_device: "/dev/{{ provision_storage_parent_disk_raw.stdout | trim }}"
+        provision_storage_part_prefix: "{{ 'p' if provision_storage_parent_disk_raw.stdout | default('') | trim | regex_search('[0-9]$') else '' }}"
+
+    - name: Read device partition information
+      community.general.parted:
+        device: "{{ provision_storage_disk_device }}"
+        unit: B
+        state: info
+      register: provision_storage_partd_info
+
+
+- name: Setup data partition
+  when: provision_storage_rootfs_size_gigs is not none
+  block:
+    - name: Create data partition after the fixed-size root partition
+      community.general.parted:
+        device: "{{ provision_storage_disk_device }}"
+        number: "{{ provision_storage_data_part_num }}"
+        state: present
+        fs_type: "{{ provision_storage_data_fstype }}"
+        part_start: >-
+          {{ provision_storage_partd_info.partitions
+             | selectattr('num', 'equalto', 1)
+             | map(attribute='end')
+             | first
+             + provision_storage_rootfs_size_gigs * 1000000000 }}B
+        part_end: "-{{ provision_storage_swap_size }}"
+        label: gpt
+
+    - name: Format the data partition
+      community.general.filesystem:
+        fstype: "{{ provision_storage_data_fstype }}"
+        dev: "{{ provision_storage_disk_device }}{{ provision_storage_part_prefix }}{{ provision_storage_data_part_num }}"
+        label: "{{ provision_storage_data_label }}"
+      when: not ansible_check_mode
+
+    - name: Ensure the data mountpoint exists
+      ansible.builtin.file:
+        path: "{{ provision_storage_data_mountpoint }}"
+        state: directory
+        mode: '0755'
+      when: provision_storage_data_mountpoint is not none
+
+    - name: Mount the data partition
+      ansible.posix.mount:
+        name: "{{ provision_storage_data_mountpoint }}"
+        src: "{{ provision_storage_disk_device }}{{ provision_storage_part_prefix }}{{ provision_storage_data_part_num }}"
+        fstype: "{{ provision_storage_data_fstype }}"
+        opts: defaults
+        passno: "2"
+        dump: "0"
+        state: mounted
+      when: provision_storage_data_mountpoint is not none
+
+
+- name: Setup SWAP partition
+  block:
+    - name: Create swap partition at the end of the disk
+      community.general.parted:
+        device: "{{ provision_storage_disk_device }}"
+        number: "{{ provision_storage_swap_part_num }}"
+        state: present
+        fs_type: linux-swap
+        part_start: "-{{ provision_storage_swap_size }}"
+        part_end: "100%"
+        label: gpt
+      register: provision_storage_swap_partition
+
+    - name: Format the swap partition
+      community.general.filesystem:
+        fstype: swap
+        dev: "{{ provision_storage_disk_device }}{{ provision_storage_part_prefix }}{{ provision_storage_swap_part_num }}"
+        force: "{{ provision_storage_swap_partition.changed }}"
+      when: not ansible_check_mode
+
+    - name: Add swap to fstab
+      ansible.posix.mount:
+        name: none
+        src: "{{ provision_storage_disk_device }}{{ provision_storage_part_prefix }}{{ provision_storage_swap_part_num }}"
+        fstype: swap
+        opts: sw
+        passno: "0"
+        dump: "0"
+        state: present
+
+    - name: Enable swap
+      ansible.builtin.command: swapon -a
+      changed_when: false
+      when: not ansible_check_mode
+
+
+- name: Resize rootfs
+  block:
+    - name: Expand mounted root partition to fill available space
+      ansible.builtin.command: "growpart {{ provision_storage_disk_device }} {{ provision_storage_root_part_num }}"
+      register: provision_storage_growpart_out
+      changed_when: provision_storage_growpart_out.rc == 0 and 'CHANGE' in provision_storage_growpart_out.stdout
+      failed_when: provision_storage_growpart_out.rc != 0 and 'NOCHANGE' not in provision_storage_growpart_out.stdout
+      when: not ansible_check_mode
+
+    - name: Resize root filesystem
+      community.general.filesystem:
+        fstype: ext4
+        dev: "{{ provision_storage_disk_device }}{{ provision_storage_part_prefix }}{{ provision_storage_root_part_num }}"
+        resizefs: true

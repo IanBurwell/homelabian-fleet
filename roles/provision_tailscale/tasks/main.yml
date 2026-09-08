@@ -1,0 +1,33 @@
+---
+# Install and authenticate Tailscale on a newly flashed server
+
+- name: Download Tailscale official install script
+  ansible.builtin.get_url:
+    url: https://tailscale.com/install.sh
+    dest: /tmp/tailscale-install.sh
+    mode: '0755'
+  notify: Run Tailscale installation script
+
+- name: Ensure Tailscale installation handler runs before authentication
+  ansible.builtin.meta: flush_handlers
+
+- name: Verify Tailscale authentication key is available
+  ansible.builtin.assert:
+    that:
+      - provision_tailscale_authkey | default('') | trim | length > 0
+    fail_msg: You must provide a Tailscale authentication key.
+
+- name: Authenticate server to Tailnet
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/timeout
+      - 60s
+      - tailscale
+      - up
+      - "--authkey={{ provision_tailscale_authkey }}"
+      - "--hostname={{ provision_tailscale_hostname }}"
+  register: provision_tailscale_status
+  changed_when: "'Success' in provision_tailscale_status.stdout"
+  failed_when: >-
+    provision_tailscale_status.rc != 0
+    and 'already authenticated' not in provision_tailscale_status.stderr
