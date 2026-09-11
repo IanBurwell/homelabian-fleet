@@ -1,0 +1,4 @@
+---
+# Default variables for Docker installation
+
+docker_volumes_storage_path: null

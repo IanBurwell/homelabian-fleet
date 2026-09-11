@@ -6,11 +6,15 @@
   hosts: homelabian-m710q
   become: true
 
+  vars:
+    docker_volumes_storage_path: /raid/docker_volumes
+
   # Setup various services via roles
   roles:
     # General setup
     - role: common-mini
     - role: mdadm_array
+    - role: docker
 
     # Docker services
     # - role: actual_budget

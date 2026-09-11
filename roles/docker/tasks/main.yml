@@ -1,0 +1,68 @@
+---
+# Install Docker and optionally place its named volumes on separate storage
+
+- name: Validate Docker volumes storage path
+  ansible.builtin.assert:
+    that:
+      - docker_volumes_storage_path is string
+      - docker_volumes_storage_path is match('^/')
+    fail_msg: >-
+      docker_volumes_storage_path must be an absolute path when configured.
+  when: docker_volumes_storage_path is not none
+
+- name: Ensure Docker volumes storage directory exists
+  ansible.builtin.file:
+    path: "{{ docker_volumes_storage_path }}"
+    state: directory
+    mode: '0711'
+  when: docker_volumes_storage_path is not none
+
+- name: Ensure Docker volumes directory exists
+  ansible.builtin.file:
+    path: /var/lib/docker/volumes
+    state: directory
+    mode: '0711'
+
+- name: Mount Docker volumes storage
+  ansible.posix.mount:
+    name: /var/lib/docker/volumes
+    src: "{{ docker_volumes_storage_path }}"
+    fstype: none
+    opts: bind
+    passno: "0"
+    dump: "0"
+    state: mounted
+  when: docker_volumes_storage_path is not none
+
+- name: Download Docker's official GPG key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/debian/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+
+- name: Add Docker repository to Apt sources
+  ansible.builtin.deb822_repository:
+    install_python_debian: true
+    name: docker
+    types: deb
+    uris: https://download.docker.com/linux/debian
+    suites: '{{ ansible_facts["distribution_release"] }}'
+    components: stable
+    architectures: '{{ {"x86_64": "amd64", "aarch64": "arm64"}.get(ansible_facts.architecture, ansible_facts.architecture) }}'
+    signed_by: /etc/apt/keyrings/docker.asc
+
+- name: Update apt cache after adding Docker repository
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install Docker and Docker Compose
+  ansible.builtin.package:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+      - python3-docker
+    state: present
+  when: not ansible_check_mode
