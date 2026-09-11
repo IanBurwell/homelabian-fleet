@@ -10,12 +10,13 @@
   roles:
     # General setup
     - role: common-mini
+    - role: mdadm_array
 
     # Docker services
-    - role: actual_budget
-    - role: frigate
-    - role: homarr
-    - role: watchtower
+    # - role: actual_budget
+    # - role: frigate
+    # - role: homarr
+    # - role: watchtower
 
     # Baremetal services
     # - role: borgmatic

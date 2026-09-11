@@ -1,0 +1,10 @@
+---
+# Default variables for the mdadm array role
+
+mdadm_array_device: /dev/md0
+mdadm_array_level: 1
+mdadm_array_raid_devices:
+  - /dev/nvme0n1p3
+  - /dev/sda
+mdadm_array_filesystem: ext4
+mdadm_array_mountpoint: /raid

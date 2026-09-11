@@ -1,0 +1,99 @@
+---
+# Create and persist the software RAID array
+
+- name: Install mdadm
+  ansible.builtin.package:
+    name: mdadm
+    state: present
+
+- name: Check RAID member devices
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ mdadm_array_raid_devices }}"
+  register: mdadm_array_device_stats
+
+- name: Validate RAID member devices
+  ansible.builtin.assert:
+    that:
+      - mdadm_array_raid_devices | length == 2
+      - mdadm_array_device_stats.results | selectattr('stat.exists', 'equalto', true) | list | length == mdadm_array_raid_devices | length
+      - mdadm_array_device is match('^/dev/')
+      - mdadm_array_mountpoint is match('^/')
+    fail_msg: >-
+      The mdadm array requires exactly two existing member devices and a target
+      device under /dev.
+
+- name: Check whether the RAID array exists
+  ansible.builtin.command:
+    cmd: "mdadm --detail {{ mdadm_array_device }}"
+  register: mdadm_array_detail
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Eradicate existing filesystem signatures
+  ansible.builtin.command:
+    cmd: "wipefs -a {{ item }}"
+  loop: "{{ mdadm_array_raid_devices }}"
+  register: mdadm_array_wipefs_out
+  when:
+    - mdadm_array_detail.rc != 0
+    - not ansible_check_mode
+  changed_when: "'erased' in mdadm_array_wipefs_out.stdout"
+
+- name: Create the RAID array
+  ansible.builtin.command:
+    cmd: >-
+      mdadm --create {{ mdadm_array_device }}
+      --metadata=1.2
+      --run
+      --level={{ mdadm_array_level }}
+      --raid-devices={{ mdadm_array_raid_devices | length }}
+      {{ mdadm_array_raid_devices | join(' ') }}
+  changed_when: true
+  when:
+    - mdadm_array_detail.rc != 0
+    - not ansible_check_mode
+
+- name: Read the created RAID array definition
+  ansible.builtin.command:
+    cmd: "mdadm --detail --scan {{ mdadm_array_device }}"
+  register: mdadm_array_scan
+  changed_when: false
+  check_mode: false
+  when: mdadm_array_detail.rc == 0 or not ansible_check_mode
+
+- name: Persist the RAID array definition
+  ansible.builtin.lineinfile:
+    path: /etc/mdadm/mdadm.conf
+    regexp: "^ARRAY {{ mdadm_array_device | regex_escape }}(?:\\s|$)"
+    line: "{{ mdadm_array_scan.stdout | trim }}"
+    create: true
+    mode: '0644'
+  when:
+    - not ansible_check_mode
+    - mdadm_array_scan is defined
+    - mdadm_array_scan.stdout | default('') | trim | length > 0
+
+- name: Create the RAID array filesystem
+  community.general.filesystem:
+    dev: "{{ mdadm_array_device }}"
+    fstype: "{{ mdadm_array_filesystem }}"
+  when: mdadm_array_detail.rc == 0 or not ansible_check_mode
+
+- name: Ensure the RAID filesystem mountpoint exists
+  ansible.builtin.file:
+    path: "{{ mdadm_array_mountpoint }}"
+    state: directory
+    mode: '0755'
+
+- name: Mount the RAID array filesystem
+  ansible.posix.mount:
+    name: "{{ mdadm_array_mountpoint }}"
+    src: "{{ mdadm_array_device }}"
+    fstype: "{{ mdadm_array_filesystem }}"
+    opts: defaults
+    passno: "2"
+    dump: "0"
+    state: mounted
+  when: mdadm_array_detail.rc == 0 or not ansible_check_mode
