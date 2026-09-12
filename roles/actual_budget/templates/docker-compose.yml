@@ -9,17 +9,9 @@ services:
       - ACTUAL_HTTPS_KEY=/data/selfhost.key
       - ACTUAL_HTTPS_CERT=/data/selfhost.crt
     volumes:
-      - type: bind
-        source: "{{ actual_budget_data_dir }}/data"
-        target: /data
-      - type: bind
-        source: "{{ https_crt_path }}"
-        target: /data/selfhost.crt
-        read_only: true
-      - type: bind
-        source: "{{ https_key_path }}"
-        target: /data/selfhost.key
-        read_only: true
+      - actual_budget_data:/data
+      - "{{ https_crt_path }}:/data/selfhost.crt:ro"
+      - "{{ https_key_path }}:/data/selfhost.key:ro"
     healthcheck:
       test: ['CMD-SHELL', 'node src/scripts/health-check.js']
       interval: 60s
@@ -27,3 +19,7 @@ services:
       retries: 3
       start_period: 20s
     restart: unless-stopped
+
+volumes:
+  actual_budget_data:
+    name: actual_budget_data

@@ -6,8 +6,12 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./appdata:/appdata
+      - homarr_appdata:/appdata
     environment:
       - SECRET_ENCRYPTION_KEY={{ homarr_enc_key }}
     ports:
       - '{{ homarr_port }}:7575'
+
+volumes:
+  homarr_appdata:
+    name: homarr_appdata

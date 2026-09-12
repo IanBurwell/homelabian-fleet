@@ -8,8 +8,8 @@ services:
     shm_size: "{{ frigate_shm_size }}"
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - "{{ frigate_data_dir }}/config:/config"
-      - "{{ frigate_storage_dir }}:/media/frigate"
+      - frigate_config:/config
+      - frigate_media:/media/frigate
       - "{{ https_crt_path }}:/etc/letsencrypt/live/frigate/fullchain.pem:ro"
       - "{{ https_key_path }}:/etc/letsencrypt/live/frigate/privkey.pem:ro"
       - type: tmpfs # 1GB In-memory filesystem for recording segment storage
@@ -25,3 +25,9 @@ services:
       - "{{ frigate_port_webrtc_udp }}:8555/udp"
     environment:
       FRIGATE_RTSP_PASSWORD: "{{ frigate_rtsp_pw }}"
+
+volumes:
+  frigate_config:
+    name: frigate_config
+  frigate_media:
+    name: frigate_media

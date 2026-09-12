@@ -3,9 +3,9 @@
 
 - name: Deploy actual_budget
   block:
-    - name: Ensure data directory exists
+    - name: Ensure Compose project directory exists
       ansible.builtin.file:
-        path: "{{ actual_budget_data_dir }}/data"
+        path: "{{ actual_budget_data_dir }}"
         state: directory
         mode: '0755'
 

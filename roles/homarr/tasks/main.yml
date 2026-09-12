@@ -3,9 +3,9 @@
 
 - name: Deploy homarr
   block:
-    - name: Ensure data directory exists
+    - name: Ensure Compose project directory exists
       ansible.builtin.file:
-        path: "{{ homarr_data_dir }}/appdata"
+        path: "{{ homarr_data_dir }}"
         state: directory
         mode: '0755'
 

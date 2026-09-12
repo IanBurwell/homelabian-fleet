@@ -3,14 +3,11 @@
 
 - name: Deploy frigate
   block:
-    - name: Ensure data directories exist
+    - name: Ensure Compose project directory exists
       ansible.builtin.file:
-        path: "{{ item }}"
+        path: "{{ frigate_data_dir }}"
         state: directory
         mode: '0755'
-      loop:
-        - "{{ frigate_data_dir }}/config"
-        - "{{ frigate_storage_dir }}"
 
     - name: Deploy docker-compose file
       ansible.builtin.template:
