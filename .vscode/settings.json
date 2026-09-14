@@ -1,0 +1,14 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^ansible-playbook playbooks\\/(deploy|provision_m710q)\\.yml --syntax-check$/": true,
+        "/^ansible-playbook playbooks\\/(deploy|provision_m710q)\\.yml --list-tasks$/": true,
+        "/^ansible-lint.*$/": true,
+        "/^command -v .*$/": true,        
+        "/^true$/": true,        
+        "/^ansible-doc( [A-Za-z0-9_.-]+)?$/": true,
+        "/^ansible-inventory (--graph|--list)$/": true,
+        "/^ansible-config (dump|view)$/": true,
+        "/^ansible-galaxy collection list$/": true,
+        "/^ansible localhost -i localhost, -c local -m ansible\\.builtin\\.(debug|setup)( -a [^;&|`$]+)?$/": true
+    }
+}

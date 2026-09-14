@@ -20,5 +20,5 @@
       community.docker.docker_compose_v2:
         project_src: "{{ frigate_data_dir }}"
         state: present
-        pull: always
+        # pull: always  # Disable if there is not much space on the host, as this will pull the image every time the playbook is run
       when: not ansible_check_mode

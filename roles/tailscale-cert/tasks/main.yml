@@ -3,7 +3,7 @@
 
 - name: Build the host-specific Tailscale HTTPS FQDN
   ansible.builtin.set_fact:
-    tailscale_cert_fqdn: "{{ ansible_facts['hostname'] }}.{{ tailscale_fqdn }}"
+    tailscale_cert_fqdn: "{{ ansible_facts['hostname'] }}.{{ tailnet_fqdn }}"
 
 - name: Ensure Tailscale HTTPS certificate directory exists
   ansible.builtin.file:
