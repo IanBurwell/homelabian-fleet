@@ -1,6 +1,7 @@
 ---
 # Default variables for homarr role
 
+homarr_ts_service: "homarr"
 homarr_port: 7575
 homarr_image: ghcr.io/homarr-labs/homarr:latest
 homarr_data_dir: /opt/homarr

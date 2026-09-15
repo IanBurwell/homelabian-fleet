@@ -10,8 +10,6 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - frigate_config:/config
       - frigate_media:/media/frigate
-      - "{{ https_crt_path }}:/etc/letsencrypt/live/frigate/fullchain.pem:ro"
-      - "{{ https_key_path }}:/etc/letsencrypt/live/frigate/privkey.pem:ro"
       - type: tmpfs # 1GB In-memory filesystem for recording segment storage
         target: /tmp/cache
         tmpfs:

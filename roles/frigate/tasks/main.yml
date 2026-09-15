@@ -22,3 +22,8 @@
         state: present
         # pull: always  # Disable if there is not much space on the host, as this will pull the image every time the playbook is run
       when: not ansible_check_mode
+
+    - name: Append Frigate to Tailscale services
+      # noqa: var-naming[no-role-prefix]
+      ansible.builtin.set_fact:
+        tailscale_serve_services: "{{ tailscale_serve_services | combine({frigate_ts_service: {'/': 'https+insecure://127.0.0.1:' ~ frigate_port_gui|string}}) }}"

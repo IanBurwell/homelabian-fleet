@@ -5,13 +5,10 @@ services:
     container_name: actual-budget
     ports:
       - '{{ actual_budget_port }}:5006'
-    environment:
-      - ACTUAL_HTTPS_KEY=/data/selfhost.key
-      - ACTUAL_HTTPS_CERT=/data/selfhost.crt
+
     volumes:
       - actual_budget_data:/data
-      - "{{ https_crt_path }}:/data/selfhost.crt:ro"
-      - "{{ https_key_path }}:/data/selfhost.key:ro"
+
     healthcheck:
       test: ['CMD-SHELL', 'node src/scripts/health-check.js']
       interval: 60s

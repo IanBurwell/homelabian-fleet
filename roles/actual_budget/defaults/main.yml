@@ -1,6 +1,7 @@
 ---
 # Default variables for actual_budget role
 
+actual_budget_ts_service: "budget"
 actual_budget_port: 5006
 actual_budget_image: docker.io/actualbudget/actual-server:latest-alpine
 actual_budget_data_dir: /opt/actual-budget

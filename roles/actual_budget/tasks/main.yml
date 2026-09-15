@@ -22,3 +22,8 @@
         state: present
         pull: always
       when: not ansible_check_mode
+
+    - name: Append Actual to Tailscale services
+      # noqa: var-naming[no-role-prefix]
+      ansible.builtin.set_fact:
+        tailscale_serve_services: "{{ tailscale_serve_services | combine({actual_budget_ts_service: actual_budget_port}) }}"

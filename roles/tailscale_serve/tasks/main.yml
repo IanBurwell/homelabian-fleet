@@ -1,0 +1,13 @@
+---
+# Can't use a nice config file due to https://github.com/tailscale/tailscale/issues/18381
+- name: Apply Tailscale Services via CLI (Workaround for set-config bug)
+  ansible.builtin.command: >
+    tailscale serve --yes --service=svc:{{ item.key.split('.')[0] }}
+    --https=443 {{ '127.0.0.1:' ~ item.value if item.value is number else item.value['/'] }}
+  loop: "{{ tailscale_serve_services | dict2items }}"
+  register: tailscale_serve_cli
+  # The CLI outputs "Serve started" when creating a new service,
+  # or "updating config" when modifying an existing one.
+  changed_when: >
+    'Serve started' in tailscale_serve_cli.stdout or
+    'updating config' in tailscale_serve_cli.stderr

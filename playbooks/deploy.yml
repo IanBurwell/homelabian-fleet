@@ -8,6 +8,7 @@
 
   vars:
     docker_volumes_storage_path: /raid/docker_volumes
+    tailscale_serve_services: {}  # Services exposed to Tailscale, filled in by service roles
 
   # Setup various services via roles
   roles:
@@ -21,6 +22,7 @@
     - role: frigate
     - role: homarr
     - role: watchtower
+    - role: tailscale_serve
 
     # Baremetal services
     # - role: borgmatic

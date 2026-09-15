@@ -1,0 +1,12 @@
+---
+# Dictionary of Tailscale services to serve via Tailscale HTTPS.
+# A service name and port creates / -> https://127.0.0.1:<port> at
+# <service-name>.<tailnet_fqdn>
+tailscale_serve_services: {}
+
+# Ex:
+# tailscale_serve_services:
+#   app1: 8080
+#   app2: 9000
+#   cams:
+#     "/": "https://127.0.0.1:8971"

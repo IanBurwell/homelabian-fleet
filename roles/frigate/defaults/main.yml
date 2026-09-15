@@ -1,6 +1,7 @@
 ---
 # Default variables for frigate role
 
+frigate_ts_service: "cams"
 frigate_port_gui: 8971
 frigate_port_rtsp: 8554
 frigate_port_webrtc_tcp: 8555
