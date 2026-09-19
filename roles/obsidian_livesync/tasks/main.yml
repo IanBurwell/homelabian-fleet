@@ -1,0 +1,79 @@
+---
+# Tasks to deploy Obsidian LiveSync
+# https://github.com/vrtmrz/obsidian-livesync/blob/main/docs/setup_own_server.md
+
+- name: Deploy Obsidian Livesync
+  block:
+    - name: Ensure Compose project directory exists
+      ansible.builtin.file:
+        path: "{{ obsidian_livesync_data_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Deploy setup URI generation script
+      ansible.builtin.template:
+        src: generate_setup_uri.sh
+        dest: "{{ obsidian_livesync_data_dir }}/generate_setup_uri.sh"
+        mode: '0700'
+
+    - name: Deploy docker-compose file
+      ansible.builtin.template:
+        src: docker-compose.yml
+        dest: "{{ obsidian_livesync_data_dir }}/docker-compose.yml"
+        mode: '0600'
+
+    - name: Start CouchDB service
+      community.docker.docker_compose_v2:
+        project_src: "{{ obsidian_livesync_data_dir }}"
+        state: present
+        pull: always
+      check_mode: false
+
+    - name: Wait for CouchDB to accept connections
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ obsidian_livesync_port }}"
+        state: started
+        timeout: 60
+
+    - name: Check whether Deno is installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/deno
+      register: obsidian_livesync_deno
+
+    - name: Get Deno installer
+      ansible.builtin.get_url:
+        url: https://deno.land/install.sh
+        dest: /tmp/deno-install.sh
+        mode: '0755'
+      when: not obsidian_livesync_deno.stat.exists
+
+    - name: Install Deno
+      ansible.builtin.command: sh /tmp/deno-install.sh
+      environment:
+        DENO_INSTALL: /usr/local
+      args:
+        creates: /usr/local/bin/deno
+      when: not obsidian_livesync_deno.stat.exists
+
+    - name: Get CouchDB init script
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/vrtmrz/obsidian-livesync/main/utils/couchdb/couchdb-init.sh"
+        dest: "/tmp/couchdb-init.sh"
+        mode: '0755'
+
+    - name: Provision Obsidian LiveSync CouchDB
+      ansible.builtin.command: /tmp/couchdb-init.sh
+      environment:
+        PATH: "/usr/local/bin:/usr/bin:/bin"
+        hostname: "http://127.0.0.1:{{ obsidian_livesync_port }}"
+        username: "{{ obsidian_livesync_couchdb_user }}"
+        password: "{{ obsidian_livesync_couchdb_password }}"
+        database: "{{ obsidian_livesync_database }}"
+      changed_when: true
+      no_log: true
+
+    - name: Append Obsidian Livesync to Tailscale services
+      # noqa: var-naming[no-role-prefix]
+      ansible.builtin.set_fact:
+        tailscale_serve_services: "{{ tailscale_serve_services | combine({obsidian_livesync_ts_service: obsidian_livesync_port}) }}"

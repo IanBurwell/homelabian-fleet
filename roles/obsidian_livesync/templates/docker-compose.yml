@@ -1,0 +1,23 @@
+---
+# https://github.com/vrtmrz/obsidian-livesync/blob/main/docs/setup_own_server.md
+
+services:
+  obsidian-couchdb:
+    image: couchdb:latest
+    container_name: obsidian-couchdb
+    user: 5984:5984
+    environment:
+      - COUCHDB_USER={{ obsidian_livesync_couchdb_user }}
+      - COUCHDB_PASSWORD={{ obsidian_livesync_couchdb_password }}
+    volumes:
+      - obsidian-couchdb-data:/opt/couchdb/data
+      - obsidian-couchdb-etc:/opt/couchdb/etc/local.d
+    ports:
+      - 5984:5984
+    restart: unless-stopped
+
+volumes:
+  obsidian-couchdb-data:
+    name: obsidian-couchdb-data
+  obsidian-couchdb-etc:
+    name: obsidian-couchdb-etc

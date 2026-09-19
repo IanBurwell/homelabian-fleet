@@ -1,3 +1,16 @@
 .ansible/
 
 *.pass
+
+# Never commit temporary decrypted files
+*.decrypted
+*.plain
+
+# Ignore editor backup files that might contain decrypted content
+*~
+*.swp
+*.swo
+*.bak
+
+# Ignore any .env files with credentials
+.env

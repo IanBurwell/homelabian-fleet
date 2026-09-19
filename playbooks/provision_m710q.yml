@@ -9,10 +9,11 @@
     ansible_become_password: "{{ unprovisioned_homelabian_pass }}"
     new_hostname: "homelabian-m710q"
     # Create data partition by limiting rootfs size
-    provision_storage_rootfs_size_gigs: 32
+    provision_storage_rootfs_size_gigs: 64
 
   roles:
     - role: provision_storage
+    - role: mdadm_array
     - role: provision_tailscale
     - role: provision_hostname
     - role: provision_user

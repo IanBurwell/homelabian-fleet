@@ -22,12 +22,34 @@
           - tmux
           - screen
           - plocate             # locate tool to help find files
+          - unzip
         state: present
 
     - name: Install common misc packages
       ansible.builtin.package:
         name:
+          - locales             # For setting system locale
           - intel-microcode     # Microcode security updates for Intel CPUs
           - amd64-microcode     # Microcode security updates for AMD CPUs
           - etckeeper           # Tracks changes to `/etc` via git
         state: present
+
+    - name: Enable en_US.UTF-8 in locale.gen
+      ansible.builtin.lineinfile:
+        path: /etc/locale.gen
+        regexp: '^#?\s*en_US\.UTF-8\s+UTF-8'
+        line: 'en_US.UTF-8 UTF-8'
+      register: locale_configuration
+
+    - name: Generate locale files
+      ansible.builtin.command: locale-gen
+      changed_when: true
+      when: locale_configuration.changed
+
+    - name: Set system-default locale
+      ansible.builtin.lineinfile:
+        path: /etc/default/locale
+        regexp: '^LANG='
+        line: 'LANG=en_US.UTF-8'
+        mode: '0644'
+        create: true

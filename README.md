@@ -26,6 +26,13 @@ This repo uses ansible to configure a base homelabian-mini server, adding variou
 - Add `--check` to a playbook run to test it and not make any real changes
 - `ansible-galaxy install -r requirements.yml` - Dependencies install (auto run in the devcontainer)
 
+# Manual steps
+1. Run provisioning script
+2. (Optional) Restore backup
+3. Run deploy
+4. Approve services on tailscale admin page
+5. Connect obsidian clients with setup URI provided by `generate_setup_uri.sh`
+
 #### TODOs
 - Determine backup *and restore* system
 - Implement mdadm software RAID on m710q
@@ -36,3 +43,4 @@ Move frigate `config.yaml` into Ansible
 - Find a way to replace the `.pass` files with a `.env`
 - Create a better way to test playbook changes without having to actually modify a live server (ex have a containerized test environment simulating each host)
 - Find a way to template the ts-serve config required by docker_exted_base
+- Somehow sort roles

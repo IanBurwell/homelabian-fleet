@@ -1,26 +1,26 @@
 ---
 
-# Main Ansible playbook to run configuration of servers in inventory
+# Deploy services to the server(s)
 
 - name: Configure m710q server
   hosts: homelabian-m710q
   become: true
 
   vars:
-    docker_volumes_storage_path: /raid/docker_volumes
     tailscale_serve_services: {}  # Services exposed to Tailscale, filled in by service roles
+    docker_volumes_storage_path: /raid/docker_volumes
 
   # Setup various services via roles
   roles:
     # General setup
     - role: common-mini
-    - role: mdadm_array
     - role: docker
 
     # Docker services
     - role: actual_budget
     - role: frigate
     - role: homarr
+    - role: obsidian_livesync
     - role: watchtower
     - role: tailscale_serve
 
