@@ -1,0 +1,27 @@
+---
+# Setup the tailscale server as an exit node
+
+- name: Install tailscale sysctl conf
+  ansible.builtin.template:
+    src: 99-tailscale.conf
+    dest: "/etc/sysctl.d/99-tailscale.conf"
+    mode: '0644'
+  register: tailscale_exit_node_sysctl_conf
+
+- name: Update sysctl with new config
+  ansible.builtin.command:
+    cmd: sysctl --system
+  changed_when: true
+  when: tailscale_exit_node_sysctl_conf.changed
+
+- name: Enable tailscale exit node
+  ansible.builtin.command:
+    cmd: tailscale set --advertise-exit-node
+  changed_when: true
+  when: tailscale_exit_node_sysctl_conf.changed
+
+- name: Restart tailsscale
+  ansible.builtin.command:
+    cmd: tailscale up
+  changed_when: true
+  when: tailscale_exit_node_sysctl_conf.changed

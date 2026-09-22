@@ -14,6 +14,7 @@
   roles:
     # General setup
     - role: common-mini
+    - role: tailscale_exit_node
     - role: docker
 
     # Docker services
