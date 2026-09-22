@@ -1,0 +1,7 @@
+---
+# Default variables for home_assistant role
+
+home_assistant_ts_service: "home-assistant"
+home_assistant_port: 8123
+home_assistant_image: ghcr.io/home-assistant/home-assistant:stable
+home_assistant_data_dir: /opt/home-assistant

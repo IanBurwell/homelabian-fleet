@@ -35,12 +35,11 @@ This repo uses ansible to configure a base homelabian-mini server, adding variou
 
 #### TODOs
 - Determine backup *and restore* system
-- Implement mdadm software RAID on m710q
 - Implement borgmatic for backups (where should they go though?)
 Move frigate `config.yaml` into Ansible
 - UFW doesnt work with docker, look at using tailscale as a reverse proxy and setting docker ports to `127.0.0.1:port:dport`
 - Document how to run main/setup playbooks
 - Find a way to replace the `.pass` files with a `.env`
 - Create a better way to test playbook changes without having to actually modify a live server (ex have a containerized test environment simulating each host)
-- Find a way to template the ts-serve config required by docker_exted_base
 - Somehow sort roles
+- Look into binding more service ports to 0.0.0.0 so that you need to use tailscale service URLs for security

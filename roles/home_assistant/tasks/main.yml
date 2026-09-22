@@ -1,0 +1,28 @@
+---
+# Tasks to deploy home_assistant service
+
+- name: Deploy home_assistant
+  block:
+    - name: Ensure Compose project directory exists
+      ansible.builtin.file:
+        path: "{{ home_assistant_data_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Deploy docker-compose file
+      ansible.builtin.template:
+        src: docker-compose.yml
+        dest: "{{ home_assistant_data_dir }}/docker-compose.yml"
+        mode: '0600'
+
+    - name: Start home_assistant service
+      community.docker.docker_compose_v2:
+        project_src: "{{ home_assistant_data_dir }}"
+        state: present
+        pull: always
+      check_mode: false
+
+    - name: Append Home Assistant to Tailscale services
+      # noqa: var-naming[no-role-prefix]
+      ansible.builtin.set_fact:
+        tailscale_serve_services: "{{ tailscale_serve_services | combine({home_assistant_ts_service: home_assistant_port}) }}"

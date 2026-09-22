@@ -1,0 +1,22 @@
+---
+
+# https://www.home-assistant.io/installation/linux#docker-compose
+
+services:
+  home-assistant:
+    container_name: home-assistant
+    image: "{{ home_assistant_image }}"
+    volumes:
+      - home_assistant_config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+    restart: unless-stopped
+    stop_grace_period: 60s
+    # privileged: true  # Docs suggest, but is a security concern. Enable if issues finding HW
+    network_mode: host  # This is also a security concern, but is required for mDNS and othwerwise I would need to forward hella ports for each new device I want to connect
+    environment:
+      TZ: America/New_York
+
+volumes:
+  home_assistant_config:
+    name: home_assistant_config

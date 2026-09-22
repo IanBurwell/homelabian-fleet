@@ -23,6 +23,9 @@
           - screen
           - plocate             # locate tool to help find files
           - unzip
+          - usbutils             # For lsusb and other USB tools
+          - pciutils             # For lspci and other PCI tools
+          - smartmontools        # For smartctl and other SMART tools
         state: present
 
     - name: Install common misc packages
@@ -32,6 +35,11 @@
           - intel-microcode     # Microcode security updates for Intel CPUs
           - amd64-microcode     # Microcode security updates for AMD CPUs
           - etckeeper           # Tracks changes to `/etc` via git
+          - bluetooth
+          - blueman
+          - firmware-linux
+          - firmware-realtek
+          - firmware-iwlwifi
         state: present
 
     - name: Enable en_US.UTF-8 in locale.gen

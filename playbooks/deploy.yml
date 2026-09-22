@@ -22,8 +22,11 @@
     - role: frigate
     - role: homarr
     - role: obsidian_livesync
+    - role: home_assistant
     - role: watchtower
-    - role: tailscale_serve
 
     # Baremetal services
     # - role: borgmatic
+
+    # Serve all services via Tailscale
+    - role: tailscale_serve
