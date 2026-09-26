@@ -1,0 +1,104 @@
+---
+# Install firmware and restore modules omitted from minimal Debian images.
+
+- name: Install Bluetooth and wireless support packages
+  ansible.builtin.apt:
+    name: "{{ provision_wireless_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Check whether the running kernel has wireless modules
+  ansible.builtin.shell:
+    cmd: >-
+      find /usr/lib/modules/{{ ansible_kernel }}
+      -type f
+      \( -name 'bluetooth.ko*' -o -name 'btusb.ko*' -o -name 'iwlwifi.ko*' \)
+      -print
+  register: provision_wireless_module_files
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Create temporary directory for the running kernel package
+  ansible.builtin.file:
+    path: /tmp/provision-wireless-kernel
+    state: directory
+    mode: '0755'
+  when:
+    - not ansible_check_mode
+    - provision_wireless_module_files.stdout_lines | length < provision_wireless_kernel_modules | length
+
+- name: Download the running kernel package without modifying /boot
+  ansible.builtin.command:
+    cmd: apt-get download linux-image-{{ ansible_kernel }}
+    chdir: /tmp/provision-wireless-kernel
+  # apt-get download is intentional: installing the image can rewrite /boot.
+  # noqa command-instead-of-module
+  register: provision_wireless_kernel_download
+  changed_when: true
+  when:
+    - not ansible_check_mode
+    - provision_wireless_module_files.stdout_lines | length < provision_wireless_kernel_modules | length
+
+- name: Locate the downloaded running kernel package
+  ansible.builtin.find:
+    paths: /tmp/provision-wireless-kernel
+    patterns: 'linux-image-*.deb'
+    file_type: file
+  register: provision_wireless_kernel_package
+  when:
+    - not ansible_check_mode
+    - provision_wireless_kernel_download is not skipped
+
+- name: Extract the running kernel modules
+  ansible.builtin.command:
+    cmd: >-
+      dpkg-deb -x
+      {{ provision_wireless_kernel_package.files | map(attribute='path') | first }}
+      /tmp/provision-wireless-kernel/extracted
+  register: provision_wireless_kernel_extract
+  changed_when: true
+  when:
+    - not ansible_check_mode
+    - provision_wireless_kernel_download is not skipped
+
+- name: Copy missing kernel modules into the running kernel tree
+  ansible.builtin.copy:
+    src: /tmp/provision-wireless-kernel/extracted/usr/lib/modules/
+    dest: /usr/lib/modules/
+    remote_src: true
+    force: false
+    mode: preserve
+    directory_mode: '0755'
+  register: provision_wireless_module_copy
+  when:
+    - not ansible_check_mode
+    - provision_wireless_kernel_extract is not skipped
+
+- name: Rebuild the kernel module dependency map
+  ansible.builtin.command: depmod -a {{ ansible_kernel }}
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Load Bluetooth and wireless kernel modules
+  ansible.builtin.command:
+    cmd: "modprobe {{ item }}"
+  loop: "{{ provision_wireless_kernel_modules }}"
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Enable and start Bluetooth service
+  ansible.builtin.systemd_service:
+    name: bluetooth.service
+    enabled: true
+    state: started
+  when: not ansible_check_mode
+
+- name: Remove temporary kernel package files
+  ansible.builtin.file:
+    path: /tmp/provision-wireless-kernel
+    state: absent
+  when:
+    - not ansible_check_mode
+    - provision_wireless_kernel_extract is not skipped

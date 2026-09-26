@@ -1,0 +1,8 @@
+---
+
+- name: Reboot after dbus-broker installation
+  ansible.builtin.reboot:
+    msg: "Rebooting after dbus-broker installation"
+    pre_reboot_delay: 5
+    post_reboot_delay: 30
+    reboot_timeout: 300

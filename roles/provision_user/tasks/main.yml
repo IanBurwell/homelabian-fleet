@@ -3,5 +3,5 @@
 
 - name: Update default user password
   ansible.builtin.user:
-    name: "{{ new_user }}"
-    password: "{{ new_user_passwd_hash }}"
+    name: "{{ provision_user_new_user }}"
+    password: "{{ provision_user_new_user_passwd_hash }}"

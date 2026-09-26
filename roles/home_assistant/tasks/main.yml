@@ -1,6 +1,21 @@
 ---
 # Tasks to deploy home_assistant service
 
+- name: Install and setup dbus-broker for better bluetooth support
+  block:
+    - name: Install dbus-broker package
+      ansible.builtin.package:
+        name: dbus-broker
+        state: present
+      register: home_assistant_dbus_broker_package
+      notify: Reboot after dbus-broker installation
+
+    - name: Enable and start dbus-broker service
+      ansible.builtin.systemd:
+        name: dbus-broker
+        enabled: true
+        state: started
+
 - name: Deploy home_assistant
   block:
     - name: Ensure Compose project directory exists

@@ -1,0 +1,16 @@
+---
+# Packages and kernel modules needed by Intel Bluetooth and wireless adapters.
+
+provision_wireless_packages:
+  - bluetooth
+  - bluez
+  - firmware-iwlwifi
+  - firmware-linux
+  - firmware-realtek
+  - iw
+  - rfkill
+
+provision_wireless_kernel_modules:
+  - bluetooth
+  - btusb
+  - iwlwifi

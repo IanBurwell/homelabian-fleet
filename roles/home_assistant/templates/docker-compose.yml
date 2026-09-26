@@ -14,6 +14,10 @@ services:
     stop_grace_period: 60s
     # privileged: true  # Docs suggest, but is a security concern. Enable if issues finding HW
     network_mode: host  # This is also a security concern, but is required for mDNS and othwerwise I would need to forward hella ports for each new device I want to connect
+    cap_add:
+      - NET_ADMIN  # Needed for full bluetooth capabilities
+      - NET_RAW  # Needed for full bluetooth capabilities
+
     environment:
       TZ: America/New_York
 

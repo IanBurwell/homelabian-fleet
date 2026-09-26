@@ -35,11 +35,6 @@
           - intel-microcode     # Microcode security updates for Intel CPUs
           - amd64-microcode     # Microcode security updates for AMD CPUs
           - etckeeper           # Tracks changes to `/etc` via git
-          - bluetooth
-          - blueman
-          - firmware-linux
-          - firmware-realtek
-          - firmware-iwlwifi
         state: present
 
     - name: Enable en_US.UTF-8 in locale.gen
