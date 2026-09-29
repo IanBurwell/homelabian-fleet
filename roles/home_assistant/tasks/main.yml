@@ -16,6 +16,55 @@
         enabled: true
         state: started
 
+- name: Set up MQTT broker for Home Assistant
+  block:
+    - name: Install Mosquitto
+      ansible.builtin.package:
+        name:
+          - mosquitto
+        state: present
+
+    - name: Create Mosquitto password file
+      ansible.builtin.command:
+        argv:
+          - mosquitto_passwd
+          - -c
+          - /etc/mosquitto/passwd
+          - "{{ home_assistant_mqtt_username }}"
+        stdin: "{{ home_assistant_mqtt_password }}\n{{ home_assistant_mqtt_password }}\n"
+        creates: /etc/mosquitto/passwd
+      no_log: true
+      notify: Restart Mosquitto
+
+    - name: Set Mosquitto password file permissions
+      ansible.builtin.file:
+        path: /etc/mosquitto/passwd
+        owner: root
+        group: mosquitto
+        mode: '0640'
+
+    - name: Configure Mosquitto for Home Assistant
+      ansible.builtin.template:
+        src: mosquitto.conf
+        dest: /etc/mosquitto/conf.d/home-assistant.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Mosquitto
+
+    - name: Allow MQTT from the local subnet
+      community.general.ufw:
+        rule: allow
+        port: '1883'
+        proto: tcp
+        src: 10.0.0.0/24
+
+    - name: Enable and start Mosquitto
+      ansible.builtin.systemd:
+        name: mosquitto
+        enabled: true
+        state: started
+
 - name: Deploy home_assistant
   block:
     - name: Ensure Compose project directory exists
