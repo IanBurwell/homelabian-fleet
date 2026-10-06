@@ -5,6 +5,11 @@ home_assistant_ts_service: "home-assistant"
 home_assistant_port: 8123
 home_assistant_image: ghcr.io/home-assistant/home-assistant:stable
 home_assistant_data_dir: /opt/home-assistant
+home_assistant_ufw_src: 10.0.0.0/24
+home_assistant_ufw_ports:
+  - 4001
+  - 4002
+  - 4003
 home_assistant_mqtt_username: homeassistant
 home_assistant_mqtt_password: !vault |
           $ANSIBLE_VAULT;1.1;AES256
