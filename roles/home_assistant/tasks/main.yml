@@ -94,6 +94,30 @@
         pull: always
       check_mode: false
 
+    - name: Check whether HACS is installed
+      community.docker.docker_container_exec:
+        container: home-assistant
+        argv:
+          - test
+          - -f
+          - /config/custom_components/hacs/manifest.json
+      register: home_assistant_hacs_check
+      changed_when: false
+      failed_when: home_assistant_hacs_check.rc not in [0, 1]
+      when: not ansible_check_mode
+
+    - name: Install HACS
+      community.docker.docker_container_exec:
+        container: home-assistant
+        chdir: /config
+        argv:
+          - bash
+          - -c
+          - wget -O - https://get.hacs.xyz | bash -
+      when: not ansible_check_mode and home_assistant_hacs_check.rc == 1
+      changed_when: true
+      notify: Restart Home Assistant
+
     - name: Append Home Assistant to Tailscale services
       # noqa: var-naming[no-role-prefix]
       ansible.builtin.set_fact:
