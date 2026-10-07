@@ -17,6 +17,7 @@ services:
     devices:
       - "{{ frigate_gpu_device }}:{{ frigate_gpu_device }}" # AMD / Intel GPU, needs to be updated for your hardware
     ports:
+      - "127.0.0.1:5000:5000" # Frigate API, only accessible from localhost
       - "{{ frigate_port_gui }}:8971"
       - "{{ frigate_port_rtsp }}:8554"
       - "{{ frigate_port_webrtc_tcp }}:8555/tcp"
