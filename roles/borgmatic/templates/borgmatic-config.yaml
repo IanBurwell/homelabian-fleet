@@ -2,22 +2,21 @@
 # See https://torsion.org/borgmatic/docs/how-to/set-up-backups/
 
 source_directories:
-  - /home
-  - /opt
+{% for directory in borgmatic_source_directories %}
+  - {{ directory }}
+{% endfor %}
 
 repositories:
-  - path: /mnt/backups/borg
-    # label: local_backup
+  - path: {{ borgmatic_repository_path }}
+    label: local_backup
+    encryption: {{ borgmatic_repository_encryption}}
 
-retention:
-  keep_daily: 7
-  keep_weekly: 4
-  keep_monthly: 6
+encryption_passphrase: "{{ borgmatic_encryption_passphrase }}"
 
-consistency:
-  checks:
-    - repository
-    - archives
+keep_daily: 5
+keep_weekly: 3
+keep_monthly: 5
 
-logging:
-  level: info
+checks:
+  - name: repository
+  - name: archives

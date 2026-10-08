@@ -1,12 +1,26 @@
 ---
 # Default variables for borgmatic role
 
+# borgmatic_repository_path: /mnt/backups/borg
+borgmatic_repository_encryption: repokey-blake2
+borgmatic_encryption_passphrase: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          61393638303765643339316464393531636461333563343639333266333264643634656562313664
+          3666303531346435353832376130376565393138323337350a383666333864653362396233643133
+          33353861396666643731353166623930323164313337373666336538633162326236616363666262
+          6565386334373038350a366430373730353762323464373434353332333462626264396630353861
+          6633
+
 borgmatic_config_dir: /etc/borgmatic.d
 borgmatic_cache_dir: /var/cache/borg
 borgmatic_log_dir: /var/log/borgmatic
 
+# Directories included in backups
+borgmatic_source_directories:
+  - /home
+  - /opt
+
 # Backup schedule - runs via systemd timer
 borgmatic_schedule_on_boot: false
-borgmatic_schedule_daily: true
 borgmatic_schedule_hour: 2
 borgmatic_schedule_minute: 0

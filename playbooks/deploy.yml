@@ -26,7 +26,11 @@
     - role: watchtower
 
     # Baremetal services
-    # - role: borgmatic
+    - role: borgmatic
+      borgmatic_repository_path: /raid/backups/borg
+      borgmatic_source_directories:
+        - /home
+        - "{{ docker_volumes_storage_path }}"
 
     # Serve all services via Tailscale
     - role: tailscale_serve
