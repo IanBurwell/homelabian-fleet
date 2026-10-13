@@ -18,6 +18,7 @@
     - role: docker
 
     # Docker services
+    - role: immich
     - role: actual_budget
     - role: frigate
     - role: homarr
