@@ -64,7 +64,11 @@
       ansible.posix.authorized_key:
         user: "{{ borg_backup_server_user }}"
         key: "{{ borgmatic_ssh_pubkey_raw.content | b64decode | trim }}"
-        key_options: 'command="borg serve --restrict-to-path {{ borg_backup_repo_path }}",restrict'
+        key_options: >-
+          command="sh -c 'borg serve --restrict-to-path {{ borg_backup_repo_path }};
+          rc=$?;
+          curl -fsS -m 5 http://127.0.0.1:{{ borg_backup_server_status_port | default(9101) }}/?refresh=1 >/dev/null 2>&1 || true;
+          exit $rc'",restrict
         state: present
       delegate_to: "{{ borg_backup_server_host }}"
       when: borgmatic_ssh_pubkey_stat.stat.exists

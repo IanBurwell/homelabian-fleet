@@ -23,7 +23,8 @@
       "extensions": [
         "redhat.ansible",
         "redhat.vscode-redhat-account", 
-        "Ollama.ollama"
+        "Ollama.ollama",
+        "google.google-antigravity"
       ],
       "settings": {
         "ollama.endpoint": "http://host.docker.internal:11434"      

@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+from urllib.parse import parse_qs, urlparse
 
 PORT = {{ borg_backup_server_status_port }}
 CACHE_FILE = "{{ borg_backup_server_home }}/smart_cache.json"
@@ -43,10 +44,27 @@ def save_cache(cache):
         pass
 
 
-def query_smart(cached_entry):
-    # Only wake the drive if we have never cached SMART data for it before
+def get_power_state():
+    proc = subprocess.run(["hdparm", "-C", DEVICE], capture_output=True, text=True, check=False)
+    if "standby" in proc.stdout.lower():
+        return "standby"
+    return "active"
+
+
+def query_smart(cached_entry, force_refresh=False):
+    has_full_cache = bool(cached_entry and "total_gb" in cached_entry)
+    power_state = get_power_state()
+
+    # Do not issue ATA SMART READ commands on routine status polls, as they reset
+    # the drive's hardware spindown timer. Only query SMART when explicitly forced
+    # (e.g. post-backup ?refresh=1) or when the cache has never been populated.
+    if has_full_cache and (power_state == "standby" or not force_refresh):
+        result = dict(cached_entry)
+        result["power_state"] = power_state
+        return result, False
+
     cmd = ["smartctl", "-j", "-d", "sat", "-a"]
-    if cached_entry:
+    if has_full_cache:
         cmd.extend(["-n", "standby"])
     cmd.append(DEVICE)
 
@@ -57,7 +75,7 @@ def query_smart(cached_entry):
         data = {}
 
     messages = " ".join(m.get("string", "") for m in data.get("smartctl", {}).get("messages", []))
-    if "STANDBY" in messages.upper() or (proc.returncode == 2 and cached_entry):
+    if "STANDBY" in messages.upper() or (proc.returncode == 2 and has_full_cache):
         result = dict(cached_entry)
         result["power_state"] = "standby"
         return result, False
@@ -75,25 +93,6 @@ def query_smart(cached_entry):
     if not smart_passed:
         notes.insert(0, "SMART_HEALTH_FAILED")
 
-    entry = {
-        "power_state": "active",
-        "smart_healthy": bool(smart_passed),
-        "temperature_c": data.get("temperature", {}).get("current"),
-        "high_fly_writes": attrs.get(189, 0),
-        "reallocated_sectors": attrs.get(5, 0),
-        "pending_sectors": attrs.get(197, 0),
-        "uncorrectable_sectors": attrs.get(198, 0),
-        "smart_notes": notes,
-    }
-    return entry, True
-
-
-def collect_status():
-    cached = load_cache()
-    smart_info, updated = query_smart(cached)
-    if updated:
-        save_cache(smart_info)
-
     try:
         usage = shutil.disk_usage(MOUNTPOINT)
         disk_stats = {
@@ -104,6 +103,33 @@ def collect_status():
         }
     except OSError:
         disk_stats = {"total_gb": 0, "used_gb": 0, "free_gb": 0, "used_percent": 0.0}
+
+    entry = {
+        "power_state": "active",
+        "smart_healthy": bool(smart_passed),
+        "temperature_c": data.get("temperature", {}).get("current"),
+        "high_fly_writes": attrs.get(189, 0),
+        "reallocated_sectors": attrs.get(5, 0),
+        "pending_sectors": attrs.get(197, 0),
+        "uncorrectable_sectors": attrs.get(198, 0),
+        "smart_notes": notes,
+        **disk_stats,
+    }
+    return entry, True
+
+
+def collect_status(force_refresh=False):
+    cached = load_cache()
+    smart_info, updated = query_smart(cached, force_refresh=force_refresh)
+    if updated:
+        save_cache(smart_info)
+
+    disk_stats = {
+        "total_gb": smart_info.get("total_gb", 0),
+        "used_gb": smart_info.get("used_gb", 0),
+        "free_gb": smart_info.get("free_gb", 0),
+        "used_percent": smart_info.get("used_percent", 0.0),
+    }
 
     overall = "healthy"
     if not smart_info["smart_healthy"]:
@@ -122,7 +148,9 @@ def collect_status():
 
 class StatusHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        body = json.dumps(collect_status(), indent=2).encode("utf-8")
+        query = parse_qs(urlparse(self.path).query)
+        force_refresh = query.get("refresh", ["0"])[0] in ("1", "true", "yes")
+        body = json.dumps(collect_status(force_refresh=force_refresh), indent=2).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Access-Control-Allow-Origin", "*")

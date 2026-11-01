@@ -155,13 +155,44 @@
     owner: root
     group: root
     mode: '0644'
+  notify: Apply hdparm spindown timer
 
-- name: Apply immediate hdparm spindown timer to backup drive
+- name: Deploy udev rule to persist hdparm spindown across boot and USB hotplug
+  ansible.builtin.template:
+    src: 99-backup-spindown.rules
+    dest: /etc/udev/rules.d/99-backup-spindown.rules
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload udev rules
+    - Apply hdparm spindown timer
+
+- name: Check current backup drive power state
   ansible.builtin.command:
-    cmd: "hdparm -B {{ borg_backup_server_apm }} -S {{ borg_backup_server_spindown_time }} {{ borg_backup_server_device }}"
+    cmd: "hdparm -C {{ borg_backup_server_device }}"
+  register: borg_backup_server_power_state
   changed_when: false
   failed_when: false
   when: not ansible_check_mode
+
+- name: Apply immediate hdparm spindown timer and standby to backup drive
+  ansible.builtin.command:
+    cmd: "hdparm -S {{ borg_backup_server_spindown_time }} -y {{ borg_backup_server_device }}"
+  changed_when: false
+  failed_when: false
+  when:
+    - not ansible_check_mode
+    - "'standby' not in (borg_backup_server_power_state.stdout | default(''))"
+
+- name: Exclude backup mountpoint from plocate daily index to prevent waking drive
+  ansible.builtin.lineinfile:
+    path: /etc/updatedb.conf
+    regexp: '^PRUNEPATHS="((?:(?<!{{ borg_backup_mountpoint | regex_escape }})[^"])*)"'
+    line: 'PRUNEPATHS="\1 {{ borg_backup_mountpoint }}"'
+    backrefs: true
+    create: false
+  failed_when: false
 
 - name: Configure smartd to monitor drive without waking from standby
   ansible.builtin.template:
@@ -196,3 +227,4 @@
     state: started
     enabled: true
   when: not ansible_check_mode
+ 

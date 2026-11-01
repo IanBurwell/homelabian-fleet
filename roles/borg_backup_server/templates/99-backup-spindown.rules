@@ -1,0 +1,4 @@
+# Managed by Ansible (borg_backup_server role)
+# Apply ATA standby timer whenever the labeled backup partition appears (boot or USB hotplug)
+ACTION=="add|change", SUBSYSTEM=="block", ENV{ID_FS_LABEL}=="{{ borg_backup_server_label }}", RUN+="/usr/sbin/hdparm -S {{ borg_backup_server_spindown_time }} $devnode"
+
