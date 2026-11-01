@@ -7,6 +7,12 @@ https_crt_path: "{{ https_certs_dir }}/{{ ansible_facts['hostname'] }}.{{ tailne
 https_key_path: "{{ https_certs_dir }}/{{ ansible_facts['hostname'] }}.{{ tailnet_fqdn }}.key"
 ansible_user: "en"
 
+# Shared off-site Borg backup configuration
+borg_backup_server_host: homelabian-pi3b
+borg_backup_server_user: borg
+borg_backup_mountpoint: /mnt/backup
+borg_backup_repo_path: "{{ borg_backup_mountpoint }}/borg"
+
 # Variables for provision_m710q playbook
 unprovisioned_homelabian_pass: !vault |
       $ANSIBLE_VAULT;1.1;AES256

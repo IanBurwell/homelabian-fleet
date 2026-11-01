@@ -1,0 +1,17 @@
+// See /etc/apt/apt.conf.d/50unattended-upgrades for documentation
+
+Unattended-Upgrade::Origins-Pattern {
+        "origin=Debian,codename=${distro_codename},label=Debian";
+        "origin=Debian,codename=${distro_codename},label=Debian-Security";
+        "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+        "origin=Raspberry Pi Foundation,codename=${distro_codename}";
+        "origin=Tailscale,codename=${distro_codename},label=Tailscale";
+};
+
+Unattended-Upgrade::Package-Blacklist {
+};
+
+// Automatic reboot if required at 2:00AM
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
+Unattended-Upgrade::Automatic-Reboot-Time "02:00";

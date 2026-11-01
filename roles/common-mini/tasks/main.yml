@@ -32,10 +32,16 @@
       ansible.builtin.package:
         name:
           - locales             # For setting system locale
-          - intel-microcode     # Microcode security updates for Intel CPUs
-          - amd64-microcode     # Microcode security updates for AMD CPUs
           - etckeeper           # Tracks changes to `/etc` via git
         state: present
+
+    - name: Install x86 CPU microcode packages
+      ansible.builtin.package:
+        name:
+          - intel-microcode     # Microcode security updates for Intel CPUs
+          - amd64-microcode     # Microcode security updates for AMD CPUs
+        state: present
+      when: ansible_facts['architecture'] == 'x86_64'
 
     - name: Enable en_US.UTF-8 in locale.gen
       ansible.builtin.lineinfile:
@@ -56,3 +62,7 @@
         line: 'LANG=en_US.UTF-8'
         mode: '0644'
         create: true
+
+    - name: Set system timezone
+      community.general.timezone:
+        name: "{{ common_mini_timezone }}"

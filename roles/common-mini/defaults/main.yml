@@ -1,0 +1,5 @@
+---
+# Default variables for common-mini role
+
+common_mini_timezone: America/New_York
+

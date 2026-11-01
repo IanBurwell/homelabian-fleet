@@ -3,12 +3,6 @@
 
 - name: Deploy borgmatic
   block:
-    - name: Require borgmatic repository path
-      ansible.builtin.assert:
-        that:
-          - borgmatic_repository_path is defined and borgmatic_repository_path | string | length > 0
-        fail_msg: Set borgmatic_repository_path to the Borg repository location.
-
     - name: Require borgmatic encryption passphrase
       ansible.builtin.assert:
         that:
@@ -16,28 +10,67 @@
           - borgmatic_encryption_passphrase | length > 0
         fail_msg: Set borgmatic_encryption_passphrase to a Vault-encrypted value.
 
-    - name: Install borgmatic package
+    - name: Install borgmatic and openssh-client packages
       ansible.builtin.package:
-        name: borgmatic
+        name:
+          - borgmatic
+          - openssh-client
         state: present
 
-    - name: Ensure borgmatic directories exist
+    - name: Ensure borgmatic and root SSH directories exist
       ansible.builtin.file:
-        path: "{{ item }}"
+        path: "{{ item.path }}"
         state: directory
-        mode: '0755'
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
       loop:
-        - "{{ borgmatic_config_dir }}"
-        - "{{ borgmatic_cache_dir }}"
-        - "{{ borgmatic_log_dir }}"
+        - path: "{{ borgmatic_config_dir }}"
+          mode: '0755'
+        - path: "{{ borgmatic_cache_dir }}"
+          mode: '0755'
+        - path: "{{ borgmatic_log_dir }}"
+          mode: '0755'
+        - path: "{{ borgmatic_ssh_key_path | dirname }}"
+          mode: '0700'
 
-    - name: Ensure borg repository parent directory exists
-      ansible.builtin.file:
-        path: "{{ borgmatic_repository_path | dirname }}"
-        state: directory
-        mode: '0700'
+    - name: Generate dedicated Borg SSH keypair for root if missing
+      ansible.builtin.command:
+        argv:
+          - ssh-keygen
+          - -t
+          - ed25519
+          - -f
+          - "{{ borgmatic_ssh_key_path }}"
+          - -N
+          - ""
+          - -C
+          - "borgmatic@{{ inventory_hostname }}"
+        creates: "{{ borgmatic_ssh_key_path }}"
+      when: not ansible_check_mode
 
-    - name: Initialize borg repository if needed
+    - name: Check whether Borg SSH public key exists
+      ansible.builtin.stat:
+        path: "{{ borgmatic_ssh_key_path }}.pub"
+      register: borgmatic_ssh_pubkey_stat
+
+    - name: Read Borg SSH public key
+      ansible.builtin.slurp:
+        src: "{{ borgmatic_ssh_key_path }}.pub"
+      register: borgmatic_ssh_pubkey_raw
+      when: borgmatic_ssh_pubkey_stat.stat.exists
+
+    - name: Authorize Borg SSH public key on remote backup server
+      ansible.posix.authorized_key:
+        user: "{{ borg_backup_server_user }}"
+        key: "{{ borgmatic_ssh_pubkey_raw.content | b64decode | trim }}"
+        key_options: 'command="borg serve --restrict-to-path {{ borg_backup_repo_path }}",restrict'
+        state: present
+      delegate_to: "{{ borg_backup_server_host }}"
+      when: borgmatic_ssh_pubkey_stat.stat.exists
+
+    # `borg init` refuses to touch an existing repository, so treat "already exists" as success.
+    - name: Initialize Borg repository if needed
       ansible.builtin.command:
         argv:
           - borg
@@ -45,22 +78,31 @@
           - --encryption
           - "{{ borgmatic_repository_encryption }}"
           - "{{ borgmatic_repository_path }}"
-        creates: "{{ borgmatic_repository_path }}/config"
       environment:
         BORG_PASSPHRASE: "{{ borgmatic_encryption_passphrase }}"
-      # no_log: true
+        BORG_RSH: "{{ borgmatic_ssh_command }}"
+      register: borgmatic_repo_init
+      changed_when: borgmatic_repo_init.rc == 0
+      failed_when:
+        - borgmatic_repo_init.rc != 0
+        - "'already exists' not in borgmatic_repo_init.stderr"
+      no_log: true
       when: not ansible_check_mode
 
     - name: Deploy default borgmatic config
       ansible.builtin.template:
         src: borgmatic-config.yaml
         dest: "{{ borgmatic_config_dir }}/config.yaml"
+        owner: root
+        group: root
         mode: '0600'
 
     - name: Deploy borgmatic systemd service
       ansible.builtin.template:
         src: borgmatic.service
         dest: /etc/systemd/system/borgmatic.service
+        owner: root
+        group: root
         mode: '0644'
       register: borgmatic_service
 
@@ -68,6 +110,8 @@
       ansible.builtin.template:
         src: borgmatic.timer
         dest: /etc/systemd/system/borgmatic.timer
+        owner: root
+        group: root
         mode: '0644'
       register: borgmatic_timer
 

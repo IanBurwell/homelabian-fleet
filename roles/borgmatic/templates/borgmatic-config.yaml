@@ -6,17 +6,25 @@ source_directories:
   - {{ directory }}
 {% endfor %}
 
+{% if borgmatic_exclude_patterns | length > 0 %}
+exclude_patterns:
+{% for pattern in borgmatic_exclude_patterns %}
+  - {{ pattern }}
+{% endfor %}
+{% endif %}
+
 repositories:
   - path: {{ borgmatic_repository_path }}
-    label: local_backup
-    encryption: {{ borgmatic_repository_encryption}}
+    label: offsite_backup
+    encryption: {{ borgmatic_repository_encryption }}
 
 encryption_passphrase: "{{ borgmatic_encryption_passphrase }}"
+ssh_command: "{{ borgmatic_ssh_command }}"
 
-keep_daily: 5
-keep_weekly: 3
-keep_monthly: 5
+keep_weekly: {{ borgmatic_keep_weekly }}
+keep_monthly: {{ borgmatic_keep_monthly }}
+keep_yearly: {{ borgmatic_keep_yearly }}
 
 checks:
   - name: repository
-  - name: archives
+    frequency: {{ borgmatic_check_frequency }}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Lightweight HTTP JSON status server for USB backup drives
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/backup-status-server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+

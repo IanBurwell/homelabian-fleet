@@ -1,0 +1,19 @@
+---
+# Default variables for borg_backup_server role
+
+borg_backup_server_home: /var/lib/borg
+borg_backup_server_status_port: 9101
+
+# Automatically partition and label the 500GB USB backup drive when /dev/disk/by-label/backup is absent
+borg_backup_server_auto_partition_usb_drive: true
+borg_backup_server_min_size_bytes: 400000000000
+borg_backup_server_max_size_bytes: 600000000000
+
+borg_backup_server_label: backup
+borg_backup_server_device: "/dev/disk/by-label/{{ borg_backup_server_label }}"
+borg_backup_server_fstype: ext4
+borg_backup_server_mount_opts: "defaults,noatime,commit=60,nofail"
+
+# 240 * 5s = 20 minutes idle before spinning down
+borg_backup_server_spindown_time: 240
+borg_backup_server_apm: 127

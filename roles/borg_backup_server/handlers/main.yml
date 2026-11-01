@@ -1,0 +1,17 @@
+---
+# Handlers for borg_backup_server role
+
+- name: Restart smartmontools
+  ansible.builtin.systemd_service:
+    name: smartmontools
+    state: restarted
+    enabled: true
+  when: not ansible_check_mode
+
+- name: Restart backup-status
+  ansible.builtin.systemd_service:
+    name: backup-status
+    state: restarted
+    daemon_reload: true
+    enabled: true
+  when: not ansible_check_mode

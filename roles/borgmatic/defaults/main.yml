@@ -1,7 +1,6 @@
 ---
 # Default variables for borgmatic role
 
-# borgmatic_repository_path: /mnt/backups/borg
 borgmatic_repository_encryption: repokey-blake2
 borgmatic_encryption_passphrase: !vault |
           $ANSIBLE_VAULT;1.1;AES256
@@ -15,12 +14,21 @@ borgmatic_config_dir: /etc/borgmatic.d
 borgmatic_cache_dir: /var/cache/borg
 borgmatic_log_dir: /var/log/borgmatic
 
+# SSH configuration for the remote off-site Borg repository
+borgmatic_ssh_key_path: /root/.ssh/id_ed25519_borg
+borgmatic_ssh_command: "ssh -i {{ borgmatic_ssh_key_path }} -o StrictHostKeyChecking=accept-new -o BatchMode=yes"
+borgmatic_repository_path: "ssh://{{ borg_backup_server_user }}@{{ borg_backup_server_host }}.{{ tailnet_fqdn }}{{ borg_backup_repo_path }}"
+
 # Directories included in backups
 borgmatic_source_directories:
   - /home
   - /opt
 
-# Backup schedule - runs via systemd timer
-borgmatic_schedule_on_boot: false
-borgmatic_schedule_hour: 2
-borgmatic_schedule_minute: 0
+borgmatic_exclude_patterns: []
+
+# Weekly schedule (Sunday at 02:00 AM) to minimize drive wear while retaining archival copies
+borgmatic_on_calendar: "Sun *-*-* 02:00:00"
+borgmatic_keep_weekly: 4
+borgmatic_keep_monthly: 6
+borgmatic_keep_yearly: 1
+borgmatic_check_frequency: "1 month"

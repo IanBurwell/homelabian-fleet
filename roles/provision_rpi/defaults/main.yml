@@ -1,0 +1,11 @@
+---
+# Default variables for Raspberry Pi baseline OS provisioning
+
+provision_rpi_zram_percent: 50
+provision_rpi_zram_algo: zstd
+provision_rpi_ssh_pubkey: >-
+  {{ lookup('pipe',
+       'grep -E "^AUTHORIZED_SSH_PUB_KEY=" ' ~ (playbook_dir ~ '/../../homelabian/.env') ~ ' | cut -d= -f2-',
+       errors='ignore'
+     ) | trim }}
+

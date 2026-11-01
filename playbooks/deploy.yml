@@ -2,6 +2,14 @@
 
 # Deploy services to the server(s)
 
+- name: Configure pi3b off-site backup server
+  hosts: homelabian-pi3b
+  become: true
+
+  roles:
+    - role: common-mini
+    - role: borg_backup_server
+
 - name: Configure m710q server
   hosts: homelabian-m710q
   become: true
@@ -28,10 +36,14 @@
 
     # Baremetal services
     - role: borgmatic
-      borgmatic_repository_path: /raid/backups/borg
       borgmatic_source_directories:
         - /home
         - "{{ docker_volumes_storage_path }}"
+      borgmatic_exclude_patterns:
+        - "{{ docker_volumes_storage_path }}/frigate_media"
+        - "{{ docker_volumes_storage_path }}/immich_cache"
+        - "{{ docker_volumes_storage_path }}/immich_data/_data/encoded-video"
+        - "{{ docker_volumes_storage_path }}/immich_data/_data/thumbs"
 
     # Serve all services via Tailscale
     - role: tailscale_serve

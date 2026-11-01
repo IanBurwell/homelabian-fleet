@@ -1,0 +1,28 @@
+---
+# Playbook to setup a newly flashed Raspberry Pi 3B backup server
+# Run with: ansible-playbook playbooks/provision_pi3b.yml -e "tailscale_authkey=$(cat tailscale.pass)"
+
+- name: Raspberry Pi 3B Server Provisioning
+  hosts: homelabian.local
+  become: true
+  vars:
+    new_hostname: "homelabian-pi3b"
+
+  roles:
+    - role: provision_rpi
+    - role: borg_backup_server
+    - role: provision_tailscale
+    - role: provision_hostname
+    - role: provision_user
+
+  tasks:
+    - name: Append new hostname to static inventory
+      ansible.builtin.lineinfile:
+        path: "../inventory.ini"
+        line: "{{ new_hostname }}"
+        create: true
+        insertafter: "\\[homelab\\]"
+        mode: '0644'
+      delegate_to: localhost
+      become: false
+

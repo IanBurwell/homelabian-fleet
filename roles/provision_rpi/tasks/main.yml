@@ -1,0 +1,109 @@
+---
+# Apply homelabian-base security hardening and SD card wear reduction to Raspberry Pi OS
+
+- name: Install baseline security and management packages
+  ansible.builtin.apt:
+    name:
+      - sudo
+      - fail2ban
+      - ufw
+      - unattended-upgrades
+      - ca-certificates
+      - needrestart
+      - openssh-server
+      - avahi-daemon
+      - python3-apt
+      - parted
+      - e2fsprogs
+      - zram-tools
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure user is in sudo group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups:
+      - sudo
+    append: true
+
+- name: Ensure SSH public key is authorized for user before disabling password auth
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user }}"
+    key: "{{ provision_rpi_ssh_pubkey }}"
+    state: present
+  when: provision_rpi_ssh_pubkey | length > 0
+
+- name: Configure SSH security drop-in
+  ansible.builtin.template:
+    src: 11-ssh-security.conf
+    dest: /etc/ssh/sshd_config.d/11-ssh-security.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart ssh
+
+- name: Configure unattended-upgrades policy
+  ansible.builtin.template:
+    src: 52unattended-upgrades-local
+    dest: /etc/apt/apt.conf.d/52unattended-upgrades-local
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure zram swap to reduce SD card wear
+  ansible.builtin.lineinfile:
+    path: /etc/default/zramswap
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    create: true
+    mode: '0644'
+  loop:
+    - regexp: '^#?\s*ALGO='
+      line: "ALGO={{ provision_rpi_zram_algo }}"
+    - regexp: '^#?\s*PERCENT='
+      line: "PERCENT={{ provision_rpi_zram_percent }}"
+  notify: Restart zramswap
+
+- name: Check whether dphys-swapfile service exists
+  ansible.builtin.stat:
+    path: /lib/systemd/system/dphys-swapfile.service
+  register: provision_rpi_dphys_service
+
+- name: Disable SD card swapfile service to prevent SD card wear
+  ansible.builtin.systemd_service:
+    name: dphys-swapfile
+    state: stopped
+    enabled: false
+  when:
+    - not ansible_check_mode
+    - provision_rpi_dphys_service.stat.exists
+
+- name: Configure UFW default incoming policy
+  community.general.ufw:
+    direction: incoming
+    default: deny
+
+- name: Configure UFW default outgoing policy
+  community.general.ufw:
+    direction: outgoing
+    default: allow
+
+- name: Allow all traffic on tailscale0 interface
+  community.general.ufw:
+    rule: allow
+    interface: tailscale0
+    direction: in
+
+# `limit` allows SSH from any source, rate-limited
+- name: Rate-limit SSH connections
+  community.general.ufw:
+    rule: limit
+    port: ssh
+    proto: tcp
+
+- name: Enable UFW firewall with low logging
+  community.general.ufw:
+    state: enabled
+    logging: low
+

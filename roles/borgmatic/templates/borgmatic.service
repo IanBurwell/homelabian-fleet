@@ -1,9 +1,10 @@
 [Unit]
 Description=Borgmatic backup service
-After=network.target
+After=network-online.target tailscaled.service
+Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/borgmatic -c {{ borgmatic_config_dir }}/config.yaml
+ExecStart=/usr/bin/borgmatic -v 1 -c {{ borgmatic_config_dir }}/config.yaml
 StandardOutput=journal
 StandardError=journal

@@ -1,0 +1,198 @@
+---
+# Configure Raspberry Pi as an off-site Borg backup server
+
+- name: Install backup server storage and monitoring packages
+  ansible.builtin.package:
+    name:
+      - borgbackup
+      - hdparm
+      - smartmontools
+      - parted
+      - e2fsprogs
+    state: present
+
+- name: Ensure borg system user exists
+  ansible.builtin.user:
+    name: "{{ borg_backup_server_user }}"
+    home: "{{ borg_backup_server_home }}"
+    shell: /bin/bash
+    system: true
+    create_home: true
+    state: present
+
+- name: Ensure borg SSH directory exists
+  ansible.builtin.file:
+    path: "{{ borg_backup_server_home }}/.ssh"
+    state: directory
+    owner: "{{ borg_backup_server_user }}"
+    group: "{{ borg_backup_server_user }}"
+    mode: '0700'
+
+- name: Check whether labeled backup drive device already exists
+  ansible.builtin.stat:
+    path: "{{ borg_backup_server_device }}"
+  register: borg_backup_server_label_stat
+
+- name: Partition and label USB backup drive if missing
+  when:
+    - borg_backup_server_auto_partition_usb_drive
+    - not borg_backup_server_label_stat.stat.exists
+  block:
+    - name: Query attached block devices
+      ansible.builtin.command:
+        cmd: lsblk -J -b -d -o NAME,SIZE,TYPE,TRAN,MODEL
+      register: borg_backup_server_lsblk_raw
+      changed_when: false
+      check_mode: false
+
+    # Select the 500GB /dev/sd* USB drive by capacity so:
+    # 1. Previously used drives with old partitions/filesystems are still matched.
+    # 2. USB-SATA docks that report tran="sata" or tran=null in lsblk are still matched.
+    # 3. The SD card (mmcblk*), zram, and any other size disk (e.g. 1TB) are ignored.
+    - name: Select 500GB attached USB disk
+      ansible.builtin.set_fact:
+        borg_backup_server_candidate_disks: >-
+          {{ (borg_backup_server_lsblk_raw.stdout | from_json).blockdevices
+             | selectattr('type', 'equalto', 'disk')
+             | selectattr('name', 'match', '^sd[a-z]+$')
+             | selectattr('size', 'ge', borg_backup_server_min_size_bytes)
+             | selectattr('size', 'le', borg_backup_server_max_size_bytes)
+             | map(attribute='name')
+             | list }}
+
+    - name: Verify exactly one 500GB USB disk was found
+      ansible.builtin.assert:
+        that:
+          - borg_backup_server_candidate_disks | length == 1
+        fail_msg: >-
+          {{ borg_backup_server_device }} does not exist and found
+          {{ borg_backup_server_candidate_disks | length }} matching ~500GB /dev/sd* disks
+          ({{ borg_backup_server_candidate_disks | join(', ') }}); expected 1.
+          Attached disks seen by lsblk:
+          {{ (borg_backup_server_lsblk_raw.stdout | from_json).blockdevices | to_json }}
+
+    - name: Set backup target disk
+      ansible.builtin.set_fact:
+        borg_backup_server_target_disk: "{{ borg_backup_server_candidate_disks | first }}"
+
+    - name: Erase existing partition table and signatures on target backup disk
+      ansible.builtin.command:
+        cmd: "wipefs -af /dev/{{ borg_backup_server_target_disk }}"
+      changed_when: true
+      when: not ansible_check_mode
+
+    - name: Create single GPT partition on backup disk
+      community.general.parted:
+        device: "/dev/{{ borg_backup_server_target_disk }}"
+        number: 1
+        state: present
+        label: gpt
+        fs_type: "{{ borg_backup_server_fstype }}"
+        part_start: 0%
+        part_end: 100%
+      when: not ansible_check_mode
+
+    - name: Wait for new partition device node
+      ansible.builtin.command:
+        cmd: udevadm settle
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Format and label backup partition without background lazyinit wear
+      community.general.filesystem:
+        fstype: "{{ borg_backup_server_fstype }}"
+        dev: "/dev/{{ borg_backup_server_target_disk }}1"
+        force: true
+        opts: "-L {{ borg_backup_server_label }} -E lazy_itable_init=0,lazy_journal_init=0"
+      when: not ansible_check_mode
+
+    - name: Trigger udev to refresh /dev/disk/by-label symlinks
+      ansible.builtin.command:
+        cmd: udevadm trigger --subsystem-match=block --action=change
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Wait for udev symlink settlement
+      ansible.builtin.command:
+        cmd: udevadm settle
+      changed_when: false
+      when: not ansible_check_mode
+
+# Root-owned mountpoint: if the drive is ever absent (nofail), the borg user
+# cannot create a repository on the SD card underneath it.
+- name: Ensure backup drive mountpoint exists
+  ansible.builtin.file:
+    path: "{{ borg_backup_mountpoint }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Mount backup drive with wear-minimizing options
+  ansible.posix.mount:
+    name: "{{ borg_backup_mountpoint }}"
+    src: "LABEL={{ borg_backup_server_label }}"
+    fstype: "{{ borg_backup_server_fstype }}"
+    opts: "{{ borg_backup_server_mount_opts }}"
+    passno: "2"
+    dump: "0"
+    state: mounted
+  when: not ansible_check_mode
+
+- name: Ensure Borg repository directory exists and is owned by borg user
+  ansible.builtin.file:
+    path: "{{ borg_backup_repo_path }}"
+    state: directory
+    owner: "{{ borg_backup_server_user }}"
+    group: "{{ borg_backup_server_user }}"
+    mode: '0700'
+  when: not ansible_check_mode
+
+- name: Configure hdparm spindown policy to minimize drive wear
+  ansible.builtin.template:
+    src: hdparm.conf
+    dest: /etc/hdparm.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Apply immediate hdparm spindown timer to backup drive
+  ansible.builtin.command:
+    cmd: "hdparm -B {{ borg_backup_server_apm }} -S {{ borg_backup_server_spindown_time }} {{ borg_backup_server_device }}"
+  changed_when: false
+  failed_when: false
+  when: not ansible_check_mode
+
+- name: Configure smartd to monitor drive without waking from standby
+  ansible.builtin.template:
+    src: smartd.conf
+    dest: /etc/smartd.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart smartmontools
+
+- name: Deploy lightweight backup and SMART status HTTP server
+  ansible.builtin.template:
+    src: backup_status_server.py
+    dest: /usr/local/bin/backup-status-server.py
+    owner: root
+    group: root
+    mode: '0755'
+  notify: Restart backup-status
+
+- name: Deploy backup-status systemd service
+  ansible.builtin.template:
+    src: backup-status.service
+    dest: /etc/systemd/system/backup-status.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart backup-status
+
+- name: Enable and start backup-status service
+  ansible.builtin.systemd_service:
+    name: backup-status
+    state: started
+    enabled: true
+  when: not ansible_check_mode
