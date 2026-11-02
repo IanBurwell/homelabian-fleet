@@ -8,3 +8,4 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - WATCHTOWER_POLL_INTERVAL={{ watchtower_check_period }}
+      - WATCHTOWER_CLEANUP={{ watchtower_cleanup | lower }}

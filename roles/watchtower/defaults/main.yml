@@ -4,3 +4,4 @@
 watchtower_image: nickfedor/watchtower:latest
 watchtower_data_dir: /opt/watchtower
 watchtower_check_period: 86400  # Daily checks (in seconds)
+watchtower_cleanup: true  # Remove old images after updating
