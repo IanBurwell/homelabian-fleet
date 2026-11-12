@@ -21,6 +21,36 @@ services:
     environment:
       TZ: America/New_York
 
+  whisper:
+    container_name: home-assistant-whisper
+    image: "{{ home_assistant_whisper_image }}"
+    command: --model {{ home_assistant_whisper_model }} --language {{ home_assistant_whisper_language }}
+    volumes:
+      - home_assistant_whisper_data:/data
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "127.0.0.1:{{ home_assistant_whisper_port }}:10300"
+    restart: unless-stopped
+    environment:
+      TZ: America/New_York
+
+  piper:
+    container_name: home-assistant-piper
+    image: "{{ home_assistant_piper_image }}"
+    command: --voice {{ home_assistant_piper_voice }}
+    volumes:
+      - home_assistant_piper_data:/data
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "127.0.0.1:{{ home_assistant_piper_port }}:10200"
+    restart: unless-stopped
+    environment:
+      TZ: America/New_York
+
 volumes:
   home_assistant_config:
     name: home_assistant_config
+  home_assistant_whisper_data:
+    name: home_assistant_whisper_data
+  home_assistant_piper_data:
+    name: home_assistant_piper_data

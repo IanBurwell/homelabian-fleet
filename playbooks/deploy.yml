@@ -2,13 +2,13 @@
 
 # Deploy services to the server(s)
 
-- name: Configure pi3b off-site backup server
-  hosts: homelabian-pi3b
-  become: true
+# - name: Configure pi3b off-site backup server
+#   hosts: homelabian-pi3b
+#   become: true
 
-  roles:
-    - role: common-mini
-    - role: borg_backup_server
+#   roles:
+#     - role: common-mini
+#     - role: borg_backup_server
 
 - name: Configure m710q server
   hosts: homelabian-m710q
@@ -41,6 +41,8 @@
         - "{{ docker_volumes_storage_path }}"
       borgmatic_exclude_patterns:
         - "{{ docker_volumes_storage_path }}/frigate_media"
+        - "{{ docker_volumes_storage_path }}/home_assistant_piper_data"
+        - "{{ docker_volumes_storage_path }}/home_assistant_whisper_data"
         - "{{ docker_volumes_storage_path }}/immich_cache"
         - "{{ docker_volumes_storage_path }}/immich_data/_data/encoded-video"
         - "{{ docker_volumes_storage_path }}/immich_data/_data/thumbs"
