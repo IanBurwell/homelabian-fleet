@@ -11,6 +11,10 @@ home_assistant_whisper_language: en
 home_assistant_piper_image: rhasspy/wyoming-piper:latest
 home_assistant_piper_port: 10200
 home_assistant_piper_voice: en_US-norman-medium
+home_assistant_music_assistant_image: ghcr.io/music-assistant/server:latest
+home_assistant_music_assistant_ts_service: "music-assistant"
+home_assistant_music_assistant_port: 8095
+home_assistant_music_assistant_stream_port: 8097
 home_assistant_data_dir: /opt/home-assistant
 home_assistant_ufw_src: 10.0.0.0/24
 home_assistant_ufw_ports:

@@ -94,7 +94,27 @@
         pull: always
       check_mode: false
 
-    - name: Append Home Assistant to Tailscale services
+    - name: Allow Home Assistant from the local subnet
+      community.general.ufw:
+        rule: allow
+        port: "{{ home_assistant_port }}"
+        proto: tcp
+        src: "{{ home_assistant_ufw_src }}"
+
+    - name: Allow Music Assistant stream server from the local subnet
+      community.general.ufw:
+        rule: allow
+        port: "{{ home_assistant_music_assistant_stream_port }}"
+        proto: tcp
+        src: "{{ home_assistant_ufw_src }}"
+
+    - name: Append Home Assistant and Music Assistant to Tailscale services
       # noqa: var-naming[no-role-prefix]
       ansible.builtin.set_fact:
-        tailscale_serve_services: "{{ tailscale_serve_services | combine({home_assistant_ts_service: home_assistant_port}) }}"
+        tailscale_serve_services: >-
+          {{
+            tailscale_serve_services | combine({
+              home_assistant_ts_service: home_assistant_port,
+              home_assistant_music_assistant_ts_service: home_assistant_music_assistant_port
+            })
+          }}

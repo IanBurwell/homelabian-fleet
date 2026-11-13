@@ -47,6 +47,17 @@ services:
     environment:
       TZ: America/New_York
 
+  music-assistant:
+    container_name: home-assistant-music-assistant
+    image: "{{ home_assistant_music_assistant_image }}"
+    network_mode: host
+    volumes:
+      - home_assistant_music_assistant_data:/data
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    environment:
+      TZ: America/New_York
+
 volumes:
   home_assistant_config:
     name: home_assistant_config
@@ -54,3 +65,5 @@ volumes:
     name: home_assistant_whisper_data
   home_assistant_piper_data:
     name: home_assistant_piper_data
+  home_assistant_music_assistant_data:
+    name: home_assistant_music_assistant_data
