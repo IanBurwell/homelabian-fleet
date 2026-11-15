@@ -10,3 +10,9 @@ tailscale_serve_services: {}
 #   app2: 9000
 #   cams:
 #     "/": "https://127.0.0.1:8971"
+
+# Dictionary of Tailscale Funnel ports to expose publicly via node-level HTTPS.
+# Maps public HTTPS port (443, 8443, or 10000) to a local port or target mapping at
+# <hostname>.<tailnet_fqdn>:<https-port>
+# noqa: var-naming[no-role-prefix]
+tailscale_funnel_services: {}

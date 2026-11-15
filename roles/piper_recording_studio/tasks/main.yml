@@ -1,0 +1,46 @@
+---
+# Tasks to deploy piper_recording_studio service
+
+- name: Deploy piper_recording_studio
+  block:
+    - name: Ensure Compose project directory exists
+      ansible.builtin.file:
+        path: "{{ piper_recording_studio_data_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Deploy nginx configuration
+      ansible.builtin.template:
+        src: nginx.conf
+        dest: "{{ piper_recording_studio_data_dir }}/nginx.conf"
+        mode: '0644'
+
+    - name: Deploy nginx htpasswd file
+      ansible.builtin.template:
+        src: htpasswd
+        dest: "{{ piper_recording_studio_data_dir }}/htpasswd"
+        mode: '0644'
+      no_log: true
+
+    - name: Deploy docker-compose file
+      ansible.builtin.template:
+        src: docker-compose.yml
+        dest: "{{ piper_recording_studio_data_dir }}/docker-compose.yml"
+        mode: '0600'
+
+    - name: Start piper_recording_studio service
+      community.docker.docker_compose_v2:
+        project_src: "{{ piper_recording_studio_data_dir }}"
+        state: present
+        pull: always
+      when: not ansible_check_mode
+
+    - name: Append Piper Recording Studio to Tailscale Funnel services
+      # noqa: var-naming[no-role-prefix]
+      ansible.builtin.set_fact:
+        tailscale_funnel_services: >-
+          {{
+            tailscale_funnel_services | default({}) | combine({
+              piper_recording_studio_funnel_https_port | string: piper_recording_studio_port
+            })
+          }}

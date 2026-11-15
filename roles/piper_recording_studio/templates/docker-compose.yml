@@ -1,0 +1,45 @@
+---
+services:
+  piper-recording-studio:
+    image: "{{ piper_recording_studio_image }}"
+    container_name: piper-recording-studio
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mkdir -p /app/output &&
+        {%- for user in piper_recording_studio_users %}
+        {%- for lang in piper_recording_studio_languages %}
+        mkdir -p "/app/output/user_{{ user }}/{{ lang }}" &&
+        {%- endfor %}
+        {%- endfor %}
+        exec /app/.venv/bin/python3 -m piper_recording_studio --host 0.0.0.0 --multi-user
+    volumes:
+      - piper_recording_studio_output:/app/output
+      - /etc/localtime:/etc/localtime:ro
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    pids_limit: 128
+    restart: unless-stopped
+
+  piper-recording-studio-proxy:
+    image: "{{ piper_recording_studio_proxy_image }}"
+    container_name: piper-recording-studio-proxy
+    depends_on:
+      - piper-recording-studio
+    ports:
+      - "127.0.0.1:{{ piper_recording_studio_port }}:8080"
+    volumes:
+      - "{{ piper_recording_studio_data_dir }}/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+      - "{{ piper_recording_studio_data_dir }}/htpasswd:/etc/nginx/.htpasswd:ro"
+      - /etc/localtime:/etc/localtime:ro
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    pids_limit: 64
+    restart: unless-stopped
+
+volumes:
+  piper_recording_studio_output:
+    name: piper_recording_studio_output

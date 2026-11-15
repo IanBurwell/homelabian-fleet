@@ -16,6 +16,7 @@
 
   vars:
     tailscale_serve_services: {}  # Services exposed to Tailscale, filled in by service roles
+    tailscale_funnel_services: {}  # Services exposed publicly via Tailscale Funnel, filled in by service roles
     docker_volumes_storage_path: /raid/docker_volumes
 
   # Setup various services via roles
@@ -32,6 +33,7 @@
     - role: homarr
     - role: obsidian_livesync
     - role: home_assistant
+    - role: piper_recording_studio
     - role: watchtower
 
     # Baremetal services

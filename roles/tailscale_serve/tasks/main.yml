@@ -11,3 +11,13 @@
   changed_when: >
     'Serve started' in tailscale_serve_cli.stdout or
     'updating config' in tailscale_serve_cli.stderr
+
+- name: Apply Tailscale Funnel via CLI
+  ansible.builtin.command: >
+    tailscale funnel --bg --yes
+    --https={{ item.key }} {{ '127.0.0.1:' ~ item.value if item.value is number else item.value['/'] }}
+  loop: "{{ tailscale_funnel_services | dict2items }}"
+  register: tailscale_serve_funnel_cli
+  changed_when: >
+    'Funnel started' in tailscale_serve_funnel_cli.stdout or
+    'updating config' in tailscale_serve_funnel_cli.stderr

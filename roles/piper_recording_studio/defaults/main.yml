@@ -1,0 +1,25 @@
+---
+# Default variables for piper_recording_studio role
+
+piper_recording_studio_funnel_https_port: 443
+piper_recording_studio_port: 10280
+piper_recording_studio_image: docker.io/rhasspy/piper-recording-studio:latest
+piper_recording_studio_proxy_image: docker.io/library/nginx:stable-alpine
+piper_recording_studio_data_dir: /opt/piper-recording-studio
+piper_recording_studio_languages:
+  - en-US
+  - en_US
+piper_recording_studio_users:
+  - ian
+  - jing
+  - brian
+  - daniel
+  - toby
+piper_recording_studio_basic_auth_user: "piper"
+piper_recording_studio_basic_auth_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          38306132653161356534306461363934653738343433643930643261393333343239626565326662
+          3439666333303964663439363938303830656361353639370a303963383733393731363333306663
+          37316265373235356166303635313438313962666539346165323138643335363330393738636132
+          3464643936656433650a613033353265353863356563343965383534333032666566376632376233
+          39343361343132323034373232363163306433653564663537393338623630356439
